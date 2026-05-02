@@ -1,0 +1,20 @@
+[package]
+name = "focus-timer"
+version = "0.1.0"
+description = "Focus timer for developers"
+authors = ["focus-timer"]
+edition = "2021"
+
+[lib]
+name = "focus_timer_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+tauri-plugin-notification = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
