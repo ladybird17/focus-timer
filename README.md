@@ -28,6 +28,18 @@
 - 설정에서 **하루 시작 시각**을 0~23시로 변경 가능
 - 예: `5시`로 설정하면 새벽 1시에 한 세션도 자동으로 전날에 묶임
 
+### 시스템 트레이 + 백그라운드 유지
+- 작업 표시줄 트레이 아이콘 — **좌클릭** 창 토글, **우클릭** `Show / Hide / Quit` 메뉴
+- **창 X 버튼**을 눌러도 종료 안 됨 → 트레이로 숨고 타이머는 백그라운드에서 계속 작동
+- 트레이 호버 시 툴팁에 남은 시간 표시 (예: `25분 남음 · 코딩 공부` / `25m left · Coding Practice`)
+- IPC 비용 최소화를 위해 분 단위로만 툴팁 갱신
+
+### 다국어 (한국어 / English)
+- 설정 모달에서 즉시 전환 — 페이지 새로고침 없이 모든 화면 갱신
+- 모드/태그/인터럽트 사유 라벨도 영어로 매핑됨
+- 시간 포맷도 언어별 분기 (`1시간 23분` ↔ `1h 23m`)
+- 트레이 우클릭 메뉴는 OS 표준 톤에 맞춰 영어 고정
+
 ---
 
 ## 기술 스택
@@ -40,6 +52,8 @@
 | 스타일링 | Tailwind CSS 3 |
 | 차트 | Recharts 3 |
 | 알림 | `@tauri-apps/plugin-notification` |
+| 트레이 | Tauri 2.x `tray-icon` feature |
+| i18n | 자체 구현 (`lib/i18n.ts` + Context) |
 
 ---
 
@@ -48,29 +62,38 @@
 ```mermaid
 flowchart LR
   subgraph Frontend["Frontend - Vite + React"]
+    LangP["LangProvider<br/>(i18n Context)"]
     Pages["pages/<br/>Timer · Today"]
-    Components["components/<br/>TimerDisplay · ModeToggle · charts/*"]
+    Components["components/<br/>TimerDisplay · charts/*"]
     DB["lib/db.ts<br/>(CRUD)"]
     Stats["lib/stats.ts<br/>(집계)"]
     Notify["lib/notify.ts"]
+    Tray["lib/tray.ts"]
+    LangP --> Pages
     Pages --> Components
     Pages --> DB
     Pages --> Stats
     Stats --> DB
     Pages --> Notify
+    Pages --> Tray
   end
 
   subgraph Backend["Tauri Rust 셸"]
     SQL["tauri-plugin-sql"]
     NotificationP["tauri-plugin-notification"]
+    TrayIcon["TrayIcon<br/>+ Menu"]
+    WinEv["window close<br/>→ hide"]
     Sqlite[("SQLite<br/>focus.db")]
-    OS["OS Native<br/>Notification"]
+    OSNotif["OS Native<br/>Notification"]
+    OSTray["OS Tray Area"]
     SQL <--> Sqlite
-    NotificationP <--> OS
+    NotificationP <--> OSNotif
+    TrayIcon <--> OSTray
   end
 
   DB <-.IPC.-> SQL
   Notify <-.IPC.-> NotificationP
+  Tray <-.IPC<br/>set_tray_tooltip.-> TrayIcon
 ```
 
 ### 핵심 설계 원칙
@@ -80,6 +103,8 @@ flowchart LR
 3. **태그를 enum이 아닌 테이블로** — 모드별 다른 태그셋 + 향후 사용자 커스터마이즈 여지.
 4. **집계는 클라이언트에서** — `getSessionsBetween(from, to)`로 한 번 받아서 `lib/stats.ts`가 가공. 로컬 앱이라 데이터량이 작아 SQL 집계 분산보다 단순함.
 5. **모든 통계 함수가 기간(`fromIso`, `toIso`) 기반** — 오늘 대시보드와 향후 주/월 패턴 화면이 같은 함수를 재사용.
+6. **i18n은 자체 구현** — `lib/i18n.ts`의 메시지 사전 + `LangProvider` Context. 외부 라이브러리 없이 번들 가벼움. DB 시드 라벨은 한국어로 보관하고 영어 모드일 때 `key`로 매핑.
+7. **창 X 버튼 = 백그라운드 유지** — Rust `WindowEvent::CloseRequested`를 가로채 `hide()` 호출. `Quit` 메뉴를 통해서만 실제 종료.
 
 ---
 
@@ -172,6 +197,9 @@ focus-timer/
 │       ├── stats.ts                # 기간 기반 집계 함수
 │       ├── notify.ts               # OS 알림
 │       ├── sound.ts                # 비프음
+│       ├── tray.ts                 # 시스템 트레이 IPC 헬퍼
+│       ├── i18n.ts                 # 메시지 사전 (ko/en) + 라벨 매핑
+│       ├── lang.tsx                # LangProvider + useLang hook
 │       └── time.ts                 # 시간 포맷 헬퍼
 │
 └── src-tauri/                      # Tauri Rust 셸
@@ -244,7 +272,8 @@ npm run tauri build
 |---|---|---|
 | **M1** | 타이머 (모드 토글 / 태그 / 시작·완료·중단 / 사유·자기평가 모달 / OS 알림 / 컬러 테마) | ✅ 완료 |
 | **M2** | 오늘 대시보드 (KPI · 도넛 · 타임라인 · 인터럽트 막대) | ✅ 완료 |
-| | 시스템 트레이 + 백그라운드 유지 | ⬜ 미정 |
+| | 시스템 트레이 + 백그라운드 유지 | ✅ 완료 |
+| | 다국어 (한국어 / English) | ✅ 완료 |
 | **M3** | 연속 완료 스트릭 / 인터럽트 사유 분석 / 모드별 통계 강화 | 🟨 부분 |
 | **M4** | 주/월 패턴 (시간대×인터럽트 히트맵, 태그×자기평가 매트릭스) | ⬜ 미정 |
 | | CSV / JSON 내보내기 | ⬜ 미정 |

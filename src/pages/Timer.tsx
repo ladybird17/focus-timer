@@ -26,6 +26,7 @@ import { ensureNotificationPermission, notifySessionDone } from "../lib/notify";
 import { playBeepSequence } from "../lib/sound";
 import { useLang } from "../lib/lang";
 import { formatDateLabel } from "../lib/i18n";
+import { setTrayTooltip } from "../lib/tray";
 import {
   PRESETS_MIN,
   interruptReasonsFor,
@@ -155,6 +156,29 @@ export default function Timer({
     return () => window.clearInterval(id);
   }, [running]);
 
+  // 트레이 툴팁 — running 상태일 때 분 단위로 남은 시간 표시
+  const lastTrayMinRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!running) {
+      lastTrayMinRef.current = null;
+      void setTrayTooltip("focus-timer");
+      return;
+    }
+    const remain = remainingMs(running.startedAt, running.plannedMin, now);
+    const remainMin = Math.max(0, Math.ceil(remain / 60000));
+    if (lastTrayMinRef.current === remainMin) return;
+    lastTrayMinRef.current = remainMin;
+    const displayTag =
+      lang === "en"
+        ? t.tag[running.tagKey] ?? running.tagLabel
+        : running.tagLabel;
+    const tail =
+      lang === "en"
+        ? `${remainMin}m left · ${displayTag}`
+        : `${remainMin}분 남음 · ${displayTag}`;
+    void setTrayTooltip(tail);
+  }, [running, now, lang, t]);
+
   useEffect(() => {
     if (!running) return;
     const remain = remainingMs(running.startedAt, running.plannedMin, now);
@@ -171,8 +195,12 @@ export default function Timer({
       void playBeepSequence(beepCount, {
         onBeepStart: flashEnabled ? () => setFlashOn(true) : undefined,
         onBeepEnd: flashEnabled ? () => setFlashOn(false) : undefined,
-      }).finally(() => setFlashOn(false));
-      setShowReview(true);
+      }).finally(() => {
+        setFlashOn(false);
+        // 비프(+깜빡임)가 끝난 뒤에 리뷰 모달을 띄움.
+        // 모달이 다이얼을 덮으므로 그 전에 깜빡임이 보여야 함.
+        setShowReview(true);
+      });
     }
   }, [now, running, beepCount, flashEnabled, lang, t]);
 
