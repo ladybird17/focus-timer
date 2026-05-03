@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ModeToggle } from "../components/ModeToggle";
 import { TagPicker } from "../components/TagPicker";
-import { TimerDisplay, THEMES, type Theme } from "../components/TimerDisplay";
+import {
+  TimerDisplay,
+  THEMES,
+  THEME_LABELS,
+  type Theme,
+} from "../components/TimerDisplay";
 import { InterruptModal } from "../components/InterruptModal";
 import { ReviewModal } from "../components/ReviewModal";
 import { SettingsModal } from "../components/SettingsModal";
@@ -63,14 +68,24 @@ export default function Timer({
   const [plannedMin, setPlannedMin] = useState<number>(60);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    // 옛 이름 → 새 이름 매핑 (디자인 의도가 같음)
+    if (saved === "butter") return "moran";
+    if (saved === "sky") return "sunfish";
+    if (saved === "ivory") return "pepe";
+    if (saved === "lime") return "rocky";
+    if (saved === "cyan") return "pointNemo";
+    if (saved === "dracula") return "burjKhalifa";
+    if (saved === "nord") return "pointNemo"; // nord 제거 — 가장 비슷한 차가운 시안으로
     if (
-      saved === "sky" ||
-      saved === "ivory" ||
-      saved === "butter" ||
-      saved === "lime"
+      saved === "moran" ||
+      saved === "sunfish" ||
+      saved === "pepe" ||
+      saved === "rocky" ||
+      saved === "pointNemo" ||
+      saved === "burjKhalifa"
     )
       return saved;
-    return "butter";
+    return "moran";
   });
   const [beepCount, setBeepCount] = useState<BeepCount>(() => {
     return localStorage.getItem(BEEPS_STORAGE_KEY) === "3" ? 3 : 1;
@@ -246,10 +261,12 @@ export default function Timer({
 
   const accent = THEMES[theme].text;
   const ACCENT_HOVER: Record<Theme, string> = {
-    butter: "#1a3478",
-    sky: "#b8201d",
-    ivory: "#2f4a2b",
-    lime: "#3f6212",
+    moran: "#9c1f24",
+    sunfish: "#b53d6e",
+    pepe: "#3a7039",
+    rocky: "#3f6212",
+    pointNemo: "#155e75",
+    burjKhalifa: "#a571f5",
   };
   const accentHover = ACCENT_HOVER[theme];
 
@@ -268,32 +285,47 @@ export default function Timer({
       <header className="px-6 pt-5 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold text-zinc-700">{todayLabel}</h1>
-          <ViewTabs view={view} onChangeView={onChangeView} />
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            {(["butter", "sky", "ivory", "lime"] as Theme[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTheme(t)}
-                aria-label={`${t} theme`}
-                className={
-                  "w-5 h-5 rounded-full border " +
-                  (theme === t
-                    ? "border-zinc-700 ring-2 ring-zinc-300"
-                    : "border-zinc-400 opacity-60 hover:opacity-100")
-                }
-                style={{ backgroundColor: THEMES[t].frame }}
-              />
-            ))}
-          </div>
           <ModeToggle
             modes={modes}
             activeId={modeId}
             onChange={setModeId}
             disabled={!!running}
           />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {(
+              [
+                "moran",
+                "sunfish",
+                "pepe",
+                "rocky",
+                "pointNemo",
+                "burjKhalifa",
+              ] as Theme[]
+            ).map((t) => (
+              <div key={t} className="relative group">
+                <button
+                  type="button"
+                  onClick={() => setTheme(t)}
+                  aria-label={`${THEME_LABELS[t]} theme`}
+                  className={
+                    "w-5 h-5 rounded-full border " +
+                    (theme === t
+                      ? "border-zinc-700 ring-2 ring-zinc-300"
+                      : "border-zinc-400 opacity-60 hover:opacity-100")
+                  }
+                  style={{ backgroundColor: THEMES[t].frame }}
+                />
+                <span
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-50 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
+                >
+                  {THEME_LABELS[t]}
+                </span>
+              </div>
+            ))}
+          </div>
+          <ViewTabs view={view} onChangeView={onChangeView} />
           <button
             type="button"
             onClick={() => setShowSettings(true)}

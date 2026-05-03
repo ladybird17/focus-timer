@@ -1,4 +1,19 @@
-export type Theme = "butter" | "sky" | "ivory" | "lime";
+export type Theme =
+  | "moran"
+  | "sunfish"
+  | "pepe"
+  | "rocky"
+  | "pointNemo"
+  | "burjKhalifa";
+
+export const THEME_LABELS: Record<Theme, string> = {
+  moran: "Moran",
+  sunfish: "Sunfish",
+  pepe: "Pepe",
+  rocky: "Rocky",
+  pointNemo: "Point Nemo",
+  burjKhalifa: "Burj Khalifa",
+};
 
 interface ThemeColors {
   frame: string;
@@ -6,53 +21,84 @@ interface ThemeColors {
   sector: string;
   knob: string;
   knobCenter: string;
+  /** 시작 버튼 배경 + 일반 액센트 (위에 흰 글자가 올라감) */
   text: string;
+  /** 다이얼 좌상단 "focus." 라벨 색 — 다크 frame일 때만 text와 분리됨 */
+  frameLabel: string;
   tickMajor: string;
   tickMinor: string;
   numberLabel: string;
 }
 
 export const THEMES: Record<Theme, ThemeColors> = {
-  butter: {
-    frame: "#f1e3bd",
+  moran: {
+    frame: "#f3e5bc",
     dialBg: "#fdfaf2",
-    sector: "#1d3c8c",
-    knob: "#f5b228",
-    knobCenter: "#b07112",
-    text: "#1d3c8c",
+    sector: "#b8252a",
+    knob: "#f3b62b",
+    knobCenter: "#ad7415",
+    text: "#b8252a",
+    frameLabel: "#b8252a",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
   },
-  sky: {
-    frame: "#82a8c4",
+  sunfish: {
+    frame: "#b8d4e8",
     dialBg: "#fdfaf2",
-    sector: "#d62a26",
-    knob: "#d4d4d8",
-    knobCenter: "#71717a",
-    text: "#d62a26",
+    sector: "#f48fb1",
+    knob: "#d6d6da",
+    knobCenter: "#74747c",
+    text: "#d94a82",
+    frameLabel: "#d94a82",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
   },
-  ivory: {
-    frame: "#ebe2c5",
+  pepe: {
+    frame: "#f0e8d2",
     dialBg: "#fdfaf2",
-    sector: "#4f7d4a",
-    knob: "#e58f3a",
-    knobCenter: "#a85d1e",
-    text: "#3d5f37",
+    sector: "#7fbf7e",
+    knob: "#f5b577",
+    knobCenter: "#c98452",
+    text: "#4a8a4a",
+    frameLabel: "#4a8a4a",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
   },
-  lime: {
+  rocky: {
     frame: "#c8c8c5",
     dialBg: "#fafaf8",
     sector: "#a3e635",
     knob: "#71717a",
     knobCenter: "#27272a",
     text: "#4d7c0f",
+    frameLabel: "#4d7c0f",
+    tickMajor: "#3f3f46",
+    tickMinor: "#a1a1aa",
+    numberLabel: "#52525b",
+  },
+  pointNemo: {
+    frame: "#dfe6ec",
+    dialBg: "#fafaf8",
+    sector: "#0891b2",
+    knob: "#475569",
+    knobCenter: "#1e293b",
+    text: "#0e7490",
+    frameLabel: "#0e7490",
+    tickMajor: "#3f3f46",
+    tickMinor: "#a1a1aa",
+    numberLabel: "#52525b",
+  },
+  burjKhalifa: {
+    frame: "#282a36",
+    dialBg: "#fdfaf2",
+    sector: "#bd93f9",
+    knob: "#f1fa8c",
+    knobCenter: "#a8a035",
+    text: "#bd93f9",
+    frameLabel: "#f8f8f2",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
@@ -158,7 +204,7 @@ export function TimerDisplay({ dialFraction, theme, flash }: Props) {
       >
         <div
           className="absolute top-3 left-4 text-[11px] font-semibold tracking-[0.18em] lowercase"
-          style={{ color: colors.text }}
+          style={{ color: colors.frameLabel }}
         >
           focus.
         </div>
