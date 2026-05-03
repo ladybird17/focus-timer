@@ -52,6 +52,9 @@ export interface Messages {
   countTimes: (n: number) => string; // "{n}회" / "{n}x"
   sessionsCount: (n: number) => string; // "{n}세션" / "{n} sessions"
 
+  // 테마 선택
+  themeLabel: string;
+
   // Settings 모달
   settingsTitle: string;
   soundLabel: string;
@@ -139,6 +142,8 @@ const ko: Messages = {
   statusInterrupted: "중단",
   countTimes: (n) => `${n}회`,
   sessionsCount: (n) => `${n}세션`,
+
+  themeLabel: "테마",
 
   settingsTitle: "설정",
   soundLabel: "알림음",
@@ -246,6 +251,8 @@ const en: Messages = {
   statusInterrupted: "Stopped",
   countTimes: (n) => `${n}×`,
   sessionsCount: (n) => `${n} session${n === 1 ? "" : "s"}`,
+
+  themeLabel: "Theme",
 
   settingsTitle: "Settings",
   soundLabel: "Notification Sound",

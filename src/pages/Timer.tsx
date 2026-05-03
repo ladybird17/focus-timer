@@ -4,9 +4,9 @@ import { TagPicker } from "../components/TagPicker";
 import {
   TimerDisplay,
   THEMES,
-  THEME_LABELS,
   type Theme,
 } from "../components/TimerDisplay";
+import { ThemePicker } from "../components/ThemePicker";
 import { InterruptModal } from "../components/InterruptModal";
 import { ReviewModal } from "../components/ReviewModal";
 import { SettingsModal } from "../components/SettingsModal";
@@ -326,38 +326,7 @@ export default function Timer({
           />
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            {(
-              [
-                "moran",
-                "sunfish",
-                "pepe",
-                "rocky",
-                "pointNemo",
-                "burjKhalifa",
-              ] as Theme[]
-            ).map((t) => (
-              <div key={t} className="relative group">
-                <button
-                  type="button"
-                  onClick={() => setTheme(t)}
-                  aria-label={`${THEME_LABELS[t]} theme`}
-                  className={
-                    "w-5 h-5 rounded-full border " +
-                    (theme === t
-                      ? "border-zinc-700 ring-2 ring-zinc-300"
-                      : "border-zinc-400 opacity-60 hover:opacity-100")
-                  }
-                  style={{ backgroundColor: THEMES[t].frame }}
-                />
-                <span
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-50 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
-                >
-                  {THEME_LABELS[t]}
-                </span>
-              </div>
-            ))}
-          </div>
+          <ThemePicker theme={theme} onChange={setTheme} />
           <ViewTabs view={view} onChangeView={onChangeView} />
           <button
             type="button"
