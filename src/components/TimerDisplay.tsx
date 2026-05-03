@@ -1,4 +1,4 @@
-export type Theme = "butter" | "sky" | "ivory";
+export type Theme = "butter" | "sky" | "ivory" | "lime";
 
 interface ThemeColors {
   frame: string;
@@ -42,6 +42,17 @@ export const THEMES: Record<Theme, ThemeColors> = {
     knob: "#e58f3a",
     knobCenter: "#a85d1e",
     text: "#3d5f37",
+    tickMajor: "#3f3f46",
+    tickMinor: "#a1a1aa",
+    numberLabel: "#52525b",
+  },
+  lime: {
+    frame: "#c8c8c5",
+    dialBg: "#fafaf8",
+    sector: "#a3e635",
+    knob: "#71717a",
+    knobCenter: "#27272a",
+    text: "#4d7c0f",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",

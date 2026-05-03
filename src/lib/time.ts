@@ -16,3 +16,19 @@ export function remainingMs(
 ): number {
   return plannedMin * 60 * 1000 - elapsedMs(startIso, now);
 }
+
+/** 'HH:mm' 표시 — 로컬 타임존 기준 */
+export function formatHm(date: Date): string {
+  const h = String(date.getHours()).padStart(2, "0");
+  const m = String(date.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+/** ms를 사람이 읽는 시간으로 — 0시간이면 '12분', 그 외 '1시간 23분' */
+export function formatDuration(ms: number): string {
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}분`;
+  return `${h}시간 ${m}분`;
+}

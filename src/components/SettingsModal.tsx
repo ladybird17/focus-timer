@@ -6,6 +6,8 @@ interface Props {
   onChangeBeepCount: (n: 1 | 3) => void;
   flashEnabled: boolean;
   onChangeFlashEnabled: (v: boolean) => void;
+  dayStartHour: number;
+  onChangeDayStartHour: (h: number) => void;
   onResetToday: () => Promise<number>;
   onClose: () => void;
 }
@@ -16,6 +18,8 @@ export function SettingsModal({
   onChangeBeepCount,
   flashEnabled,
   onChangeFlashEnabled,
+  dayStartHour,
+  onChangeDayStartHour,
   onResetToday,
   onClose,
 }: Props) {
@@ -120,6 +124,27 @@ export function SettingsModal({
               >
                 켜기
               </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-medium text-zinc-800">하루 시작 시각</div>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              "오늘"의 기준 시각. 예: 5시 → 5월 3일은 5월 3일 5시 ~ 5월 4일 5시 직전
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <select
+                value={dayStartHour}
+                onChange={(e) => onChangeDayStartHour(Number(e.target.value))}
+                className="px-2.5 py-1 text-sm rounded-md border border-zinc-300 bg-white text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              >
+                {Array.from({ length: 24 }, (_, i) => i).map((h) => (
+                  <option key={h} value={h}>
+                    {String(h).padStart(2, "0")}:00
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-zinc-500">기준</span>
             </div>
           </div>
 

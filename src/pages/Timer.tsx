@@ -5,6 +5,8 @@ import { TimerDisplay, THEMES, type Theme } from "../components/TimerDisplay";
 import { InterruptModal } from "../components/InterruptModal";
 import { ReviewModal } from "../components/ReviewModal";
 import { SettingsModal } from "../components/SettingsModal";
+import { ViewTabs } from "../components/ViewTabs";
+import type { View } from "../App";
 import {
   completeSession,
   deleteTodaySessions,
@@ -41,7 +43,19 @@ const FLASH_STORAGE_KEY = "focus-timer.flash";
 
 type BeepCount = 1 | 3;
 
-export default function Timer() {
+interface TimerProps {
+  view: View;
+  onChangeView: (v: View) => void;
+  dayStartHour: number;
+  onChangeDayStartHour: (h: number) => void;
+}
+
+export default function Timer({
+  view,
+  onChangeView,
+  dayStartHour,
+  onChangeDayStartHour,
+}: TimerProps) {
   const [modes, setModes] = useState<Mode[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [modeId, setModeId] = useState<number | null>(null);
@@ -49,7 +63,13 @@ export default function Timer() {
   const [plannedMin, setPlannedMin] = useState<number>(60);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === "sky" || saved === "ivory" || saved === "butter") return saved;
+    if (
+      saved === "sky" ||
+      saved === "ivory" ||
+      saved === "butter" ||
+      saved === "lime"
+    )
+      return saved;
     return "butter";
   });
   const [beepCount, setBeepCount] = useState<BeepCount>(() => {
@@ -229,13 +249,13 @@ export default function Timer() {
     butter: "#1a3478",
     sky: "#b8201d",
     ivory: "#2f4a2b",
+    lime: "#3f6212",
   };
   const accentHover = ACCENT_HOVER[theme];
 
   const todayLabel = useMemo(() => {
     const d = new Date();
     const dateStr = d.toLocaleDateString("ko-KR", {
-      year: "numeric",
       month: "long",
       day: "numeric",
     });
@@ -246,10 +266,13 @@ export default function Timer() {
   return (
     <main className="min-h-screen flex flex-col bg-[#fffef7] text-zinc-800">
       <header className="px-6 pt-5 pb-2 flex items-center justify-between">
-        <h1 className="text-sm font-semibold text-zinc-700">{todayLabel}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm font-semibold text-zinc-700">{todayLabel}</h1>
+          <ViewTabs view={view} onChangeView={onChangeView} />
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            {(["butter", "sky", "ivory"] as Theme[]).map((t) => (
+            {(["butter", "sky", "ivory", "lime"] as Theme[]).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -400,6 +423,8 @@ export default function Timer() {
         onChangeBeepCount={setBeepCount}
         flashEnabled={flashEnabled}
         onChangeFlashEnabled={setFlashEnabled}
+        dayStartHour={dayStartHour}
+        onChangeDayStartHour={onChangeDayStartHour}
         onResetToday={handleResetToday}
         onClose={() => setShowSettings(false)}
       />
