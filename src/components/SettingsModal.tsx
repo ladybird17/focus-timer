@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useLang } from "../lib/lang";
+import type { Lang } from "../lib/i18n";
 
 interface Props {
   open: boolean;
@@ -23,6 +25,7 @@ export function SettingsModal({
   onResetToday,
   onClose,
 }: Props) {
+  const { lang, setLang, t } = useLang();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetMsg, setResetMsg] = useState<string | null>(null);
@@ -39,10 +42,12 @@ export function SettingsModal({
     setResetting(true);
     try {
       const n = await onResetToday();
-      setResetMsg(`${n}개 세션이 삭제되었습니다`);
+      setResetMsg(t.resetDoneMsg(n));
       setConfirmReset(false);
     } catch (e) {
-      setResetMsg(e instanceof Error ? `오류: ${e.message}` : "오류가 발생했습니다");
+      setResetMsg(
+        e instanceof Error ? t.resetErrorMsg(e.message) : t.resetErrorGeneric,
+      );
     } finally {
       setResetting(false);
     }
@@ -58,7 +63,7 @@ export function SettingsModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900">설정</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">{t.settingsTitle}</h2>
           <button
             type="button"
             onClick={close}
@@ -71,10 +76,29 @@ export function SettingsModal({
 
         <div className="mt-5 space-y-5">
           <div>
-            <div className="text-sm font-medium text-zinc-800">알림음</div>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              세션이 끝날 때 들리는 비프음 횟수
-            </p>
+            <div className="text-sm font-medium text-zinc-800">{t.langLabel}</div>
+            <div className="mt-2 inline-flex rounded-md bg-zinc-100 border border-zinc-200 p-0.5">
+              {(["ko", "en"] as Lang[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLang(l)}
+                  className={
+                    "px-3 py-1 rounded text-sm font-medium transition-colors " +
+                    (lang === l
+                      ? "bg-zinc-800 text-zinc-50"
+                      : "text-zinc-600 hover:text-zinc-900")
+                  }
+                >
+                  {l === "ko" ? t.langKo : t.langEn}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-medium text-zinc-800">{t.soundLabel}</div>
+            <p className="text-xs text-zinc-500 mt-0.5">{t.soundDesc}</p>
             <div className="mt-2 inline-flex rounded-md bg-zinc-100 border border-zinc-200 p-0.5">
               {([1, 3] as const).map((n) => (
                 <button
@@ -88,17 +112,15 @@ export function SettingsModal({
                       : "text-zinc-600 hover:text-zinc-900")
                   }
                 >
-                  {n}회
+                  {t.beepCountSuffix(n)}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <div className="text-sm font-medium text-zinc-800">깜빡임</div>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              알림음과 동시에 다이얼이 밝게 빛남
-            </p>
+            <div className="text-sm font-medium text-zinc-800">{t.flashLabel}</div>
+            <p className="text-xs text-zinc-500 mt-0.5">{t.flashDesc}</p>
             <div className="mt-2 inline-flex rounded-md bg-zinc-100 border border-zinc-200 p-0.5">
               <button
                 type="button"
@@ -110,7 +132,7 @@ export function SettingsModal({
                     : "text-zinc-600 hover:text-zinc-900")
                 }
               >
-                끄기
+                {t.off}
               </button>
               <button
                 type="button"
@@ -122,16 +144,14 @@ export function SettingsModal({
                     : "text-zinc-600 hover:text-zinc-900")
                 }
               >
-                켜기
+                {t.on}
               </button>
             </div>
           </div>
 
           <div>
-            <div className="text-sm font-medium text-zinc-800">하루 시작 시각</div>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              "오늘"의 기준 시각. 예: 5시 → 5월 3일은 5월 3일 5시 ~ 5월 4일 5시 직전
-            </p>
+            <div className="text-sm font-medium text-zinc-800">{t.dayStartLabel}</div>
+            <p className="text-xs text-zinc-500 mt-0.5">{t.dayStartDesc}</p>
             <div className="mt-2 flex items-center gap-2">
               <select
                 value={dayStartHour}
@@ -144,15 +164,13 @@ export function SettingsModal({
                   </option>
                 ))}
               </select>
-              <span className="text-xs text-zinc-500">기준</span>
+              <span className="text-xs text-zinc-500">{t.dayStartUnit}</span>
             </div>
           </div>
 
           <div className="pt-3 border-t border-zinc-200">
-            <div className="text-sm font-medium text-zinc-800">데이터</div>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              오늘 시작된 모든 세션 기록을 삭제합니다. 되돌릴 수 없어요.
-            </p>
+            <div className="text-sm font-medium text-zinc-800">{t.dataLabel}</div>
+            <p className="text-xs text-zinc-500 mt-0.5">{t.resetTodayDesc}</p>
             {!confirmReset ? (
               <button
                 type="button"
@@ -162,18 +180,18 @@ export function SettingsModal({
                 }}
                 className="mt-2 px-3 py-1.5 text-sm font-medium rounded-md text-red-700 bg-red-50 border border-red-200 hover:bg-red-100"
               >
-                오늘 기록 초기화
+                {t.resetTodayBtn}
               </button>
             ) : (
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-sm text-zinc-700">정말 초기화할까요?</span>
+                <span className="text-sm text-zinc-700">{t.resetConfirm}</span>
                 <button
                   type="button"
                   onClick={() => setConfirmReset(false)}
                   disabled={resetting}
                   className="px-3 py-1 text-sm rounded-md bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
                 >
-                  취소
+                  {t.cancel}
                 </button>
                 <button
                   type="button"
@@ -181,7 +199,7 @@ export function SettingsModal({
                   disabled={resetting}
                   className="px-3 py-1 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-500 disabled:opacity-50"
                 >
-                  {resetting ? "삭제중..." : "삭제"}
+                  {resetting ? t.resetting : t.deleteWord}
                 </button>
               </div>
             )}
@@ -197,7 +215,7 @@ export function SettingsModal({
             onClick={close}
             className="px-4 py-1.5 text-sm font-medium rounded-md bg-zinc-800 text-white hover:bg-zinc-700"
           >
-            완료
+            {t.doneClose}
           </button>
         </div>
       </div>

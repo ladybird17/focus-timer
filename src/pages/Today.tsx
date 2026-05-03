@@ -19,6 +19,8 @@ import {
   type SessionRow,
 } from "../lib/stats";
 import { formatDuration, formatHm } from "../lib/time";
+import { useLang } from "../lib/lang";
+import { formatDateLabel } from "../lib/i18n";
 
 interface Props {
   view: View;
@@ -26,13 +28,8 @@ interface Props {
   dayStartHour: number;
 }
 
-const FILTERS: { key: ModeFilter; label: string }[] = [
-  { key: "all", label: "전체" },
-  { key: "work", label: "업무" },
-  { key: "study", label: "공부" },
-];
-
 export default function Today({ view, onChangeView, dayStartHour }: Props) {
+  const { lang, t } = useLang();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,15 +68,16 @@ export default function Today({ view, onChangeView, dayStartHour }: Props) {
   const tags = tagDistribution(filtered);
   const interrupts = interruptDistribution(filtered);
 
-  const dayLabel = useMemo(() => {
-    const d = new Date(range.fromIso);
-    const dateStr = d.toLocaleDateString("ko-KR", {
-      month: "long",
-      day: "numeric",
-    });
-    const wd = d.toLocaleDateString("ko-KR", { weekday: "short" });
-    return `${dateStr} (${wd})`;
-  }, [range.fromIso]);
+  const FILTERS: { key: ModeFilter; label: string }[] = [
+    { key: "all", label: t.filterAll },
+    { key: "work", label: t.filterWork },
+    { key: "study", label: t.filterStudy },
+  ];
+
+  const dayLabel = useMemo(
+    () => formatDateLabel(new Date(range.fromIso), lang),
+    [range.fromIso, lang],
+  );
 
   const streakHint = streak
     ? `${formatHm(new Date(streak.fromIso))} ~ ${formatHm(new Date(streak.toIso))}`
@@ -91,7 +89,7 @@ export default function Today({ view, onChangeView, dayStartHour }: Props) {
         <div>
           <h1 className="text-sm font-semibold text-zinc-700">{dayLabel}</h1>
           <div className="text-xs text-zinc-500 mt-0.5">
-            {formatHm(new Date(range.fromIso))} 기준
+            {t.todayBaseSuffix(formatHm(new Date(range.fromIso)))}
           </div>
         </div>
         <ViewTabs view={view} onChangeView={onChangeView} />
@@ -120,48 +118,54 @@ export default function Today({ view, onChangeView, dayStartHour }: Props) {
       <section className="px-6 pt-3">
         <div className="flex flex-wrap gap-3">
           <KpiCard
-            label="총 집중시간"
-            value={total > 0 ? formatDuration(total) : "—"}
+            label={t.kpiTotalFocus}
+            value={total > 0 ? formatDuration(total, t) : t.none}
           />
           <KpiCard
-            label="완료 세션"
-            value={`${completed}회`}
-            hint={interrupted > 0 ? `중단 ${interrupted}회` : undefined}
+            label={t.kpiCompleted}
+            value={t.countSuffix(completed)}
+            hint={interrupted > 0 ? t.stoppedHint(interrupted) : undefined}
           />
           <KpiCard
-            label="베스트 스트릭"
-            value={streak ? `${streak.count}연속` : "—"}
+            label={t.kpiBestStreak}
+            value={streak ? t.streakValue(streak.count) : t.none}
             hint={streakHint || undefined}
           />
         </div>
       </section>
 
       <section className="px-6 pt-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-3">태그별 분포</h2>
+        <h2 className="text-sm font-semibold text-zinc-700 mb-3">
+          {t.sectionTagDistribution}
+        </h2>
         <div className="p-4 rounded-xl bg-white border border-zinc-200">
           <DonutChart
             data={tags}
-            centerLabel={total > 0 ? formatDuration(total) : undefined}
+            centerLabel={total > 0 ? formatDuration(total, t) : undefined}
           />
         </div>
       </section>
 
       <section className="px-6 pt-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-3">타임라인</h2>
+        <h2 className="text-sm font-semibold text-zinc-700 mb-3">
+          {t.sectionTimeline}
+        </h2>
         <div className="p-4 rounded-xl bg-white border border-zinc-200">
           <Timeline sessions={filtered} />
         </div>
       </section>
 
       <section className="px-6 pt-6 pb-8">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-3">인터럽트 사유</h2>
+        <h2 className="text-sm font-semibold text-zinc-700 mb-3">
+          {t.sectionInterruptReasons}
+        </h2>
         <div className="p-4 rounded-xl bg-white border border-zinc-200">
           <InterruptBar data={interrupts} />
         </div>
       </section>
 
       {loading && (
-        <div className="px-6 pb-4 text-xs text-zinc-400">불러오는 중…</div>
+        <div className="px-6 pb-4 text-xs text-zinc-400">{t.loading}</div>
       )}
       {error && (
         <div className="px-6 pb-4 text-xs text-red-600 break-all">{error}</div>

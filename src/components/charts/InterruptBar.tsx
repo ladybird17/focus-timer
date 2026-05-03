@@ -8,6 +8,7 @@ import {
   Cell,
 } from "recharts";
 import type { InterruptSlice } from "../../lib/stats";
+import { useLang } from "../../lib/lang";
 
 interface Props {
   data: InterruptSlice[];
@@ -24,20 +25,27 @@ const PALETTE = [
 ];
 
 export function InterruptBar({ data }: Props) {
+  const { t } = useLang();
   if (data.length === 0) {
     return (
       <div className="h-[80px] flex items-center justify-center text-sm text-zinc-400">
-        인터럽트 기록 없음
+        {t.interruptEmpty}
       </div>
     );
   }
 
+  // 라벨을 i18n으로 매핑한 새 데이터 (Y축/툴팁용)
+  const localized = data.map((d) => ({
+    ...d,
+    label: t.reason[d.reason],
+  }));
+
   return (
-    <div style={{ width: "100%", height: 24 + data.length * 36 }}>
+    <div style={{ width: "100%", height: 24 + localized.length * 36 }}>
       <ResponsiveContainer>
         <BarChart
           layout="vertical"
-          data={data}
+          data={localized}
           margin={{ top: 4, right: 24, left: 0, bottom: 4 }}
         >
           <XAxis
@@ -53,23 +61,25 @@ export function InterruptBar({ data }: Props) {
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: "#3f3f46" }}
-            width={80}
+            width={100}
           />
           <Tooltip
             cursor={{ fill: "#f4f4f5" }}
             content={({ active, payload }) => {
               if (!active || !payload || payload.length === 0) return null;
-              const p = payload[0].payload as InterruptSlice;
+              const p = payload[0].payload as InterruptSlice & { label: string };
               return (
                 <div className="px-2.5 py-1.5 rounded-md bg-zinc-900 text-zinc-50 text-xs shadow-lg">
                   <div className="font-medium">{p.label}</div>
-                  <div className="tabular-nums text-zinc-300">{p.count}회</div>
+                  <div className="tabular-nums text-zinc-300">
+                    {t.countTimes(p.count)}
+                  </div>
                 </div>
               );
             }}
           />
           <Bar dataKey="count" radius={[0, 4, 4, 0]} isAnimationActive={false}>
-            {data.map((_, i) => (
+            {localized.map((_, i) => (
               <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
             ))}
           </Bar>

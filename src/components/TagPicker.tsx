@@ -1,4 +1,5 @@
 import type { Tag } from "../types";
+import { useLang } from "../lib/lang";
 
 interface Props {
   tags: Tag[];
@@ -8,17 +9,19 @@ interface Props {
 }
 
 export function TagPicker({ tags, activeId, onChange, disabled }: Props) {
+  const { lang, t } = useLang();
   return (
     <div className="flex flex-wrap gap-2">
-      {tags.map((t) => {
-        const active = t.id === activeId;
-        const color = t.color ?? "#71717a";
+      {tags.map((tag) => {
+        const active = tag.id === activeId;
+        const color = tag.color ?? "#71717a";
+        const label = lang === "en" ? t.tag[tag.key] ?? tag.label : tag.label;
         return (
           <button
-            key={t.id}
+            key={tag.id}
             type="button"
             disabled={disabled}
-            onClick={() => onChange(t.id)}
+            onClick={() => onChange(tag.id)}
             style={
               active
                 ? { backgroundColor: color, borderColor: color }
@@ -31,7 +34,7 @@ export function TagPicker({ tags, activeId, onChange, disabled }: Props) {
                 : "bg-white hover:bg-zinc-50 disabled:opacity-50")
             }
           >
-            {t.label}
+            {label}
           </button>
         );
       })}

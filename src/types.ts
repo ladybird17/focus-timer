@@ -41,22 +41,22 @@ export interface Session {
   note: string | null;
 }
 
-export const INTERRUPT_REASONS_WORK: { key: InterruptReason; label: string }[] = [
-  { key: "urgent_inquiry", label: "급한 문의" },
-  { key: "meeting", label: "회의" },
-  { key: "cant_focus", label: "집중 안됨" },
-  { key: "deploy_incident", label: "배포/장애 대응" },
-  { key: "etc", label: "기타" },
+export const INTERRUPT_REASONS_WORK: InterruptReason[] = [
+  "urgent_inquiry",
+  "meeting",
+  "cant_focus",
+  "deploy_incident",
+  "etc",
 ];
 
-export const INTERRUPT_REASONS_STUDY: { key: InterruptReason; label: string }[] = [
-  { key: "cant_focus", label: "집중 안됨" },
-  { key: "urgent_contact", label: "급한 연락" },
-  { key: "work_request", label: "업무 요청 옴" },
-  { key: "etc", label: "기타" },
+export const INTERRUPT_REASONS_STUDY: InterruptReason[] = [
+  "cant_focus",
+  "urgent_contact",
+  "work_request",
+  "etc",
 ];
 
-export function interruptReasonsFor(modeKey: ModeKey) {
+export function interruptReasonsFor(modeKey: ModeKey): InterruptReason[] {
   return modeKey === "study" ? INTERRUPT_REASONS_STUDY : INTERRUPT_REASONS_WORK;
 }
 

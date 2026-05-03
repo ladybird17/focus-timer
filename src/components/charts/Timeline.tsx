@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { durationMs, timelineRange, type SessionRow } from "../../lib/stats";
 import { formatHm, formatDuration } from "../../lib/time";
+import { useLang } from "../../lib/lang";
 
 interface Props {
   sessions: SessionRow[];
@@ -19,6 +20,7 @@ interface BarDatum {
   offset: number;
   duration: number;
   color: string;
+  tagKey: string;
   tagLabel: string;
   status: SessionRow["status"];
   startedAt: string;
@@ -28,11 +30,12 @@ interface BarDatum {
 const FALLBACK_COLOR = "#a1a1aa";
 
 export function Timeline({ sessions }: Props) {
+  const { lang, t } = useLang();
   const range = timelineRange(sessions);
   if (!range || sessions.length === 0) {
     return (
       <div className="h-[80px] flex items-center justify-center text-sm text-zinc-400">
-        세션이 없습니다
+        {t.timelineEmpty}
       </div>
     );
   }
@@ -48,6 +51,7 @@ export function Timeline({ sessions }: Props) {
       offset: sMs - fromMs,
       duration: dur,
       color: s.tag_color ?? FALLBACK_COLOR,
+      tagKey: s.tag_key,
       tagLabel: s.tag_label,
       status: s.status,
       startedAt: s.started_at,
@@ -57,10 +61,10 @@ export function Timeline({ sessions }: Props) {
 
   const tickInterval = totalMs > 6 * 3_600_000 ? 3_600_000 : 30 * 60_000;
   const ticks: number[] = [];
-  let t = Math.ceil(fromMs / tickInterval) * tickInterval;
-  while (t <= toMs + tickInterval) {
-    ticks.push(t - fromMs);
-    t += tickInterval;
+  let tt = Math.ceil(fromMs / tickInterval) * tickInterval;
+  while (tt <= toMs + tickInterval) {
+    ticks.push(tt - fromMs);
+    tt += tickInterval;
   }
 
   return (
@@ -94,17 +98,20 @@ export function Timeline({ sessions }: Props) {
             content={({ active, payload }) => {
               if (!active || !payload || payload.length === 0) return null;
               const d = payload[0].payload as BarDatum;
-              const status = d.status === "completed" ? "완료" : "중단";
+              const status =
+                d.status === "completed" ? t.statusCompleted : t.statusInterrupted;
+              const display =
+                lang === "en" ? t.tag[d.tagKey] ?? d.tagLabel : d.tagLabel;
               const range = `${formatHm(new Date(d.startedAt))} ~ ${
                 d.endedAt ? formatHm(new Date(d.endedAt)) : "?"
               }`;
               return (
                 <div className="px-2.5 py-1.5 rounded-md bg-zinc-900 text-zinc-50 text-xs shadow-lg">
                   <div className="font-medium">
-                    {d.tagLabel} · {status}
+                    {display} · {status}
                   </div>
                   <div className="tabular-nums text-zinc-300">
-                    {range} ({formatDuration(d.duration)})
+                    {range} ({formatDuration(d.duration, t)})
                   </div>
                 </div>
               );

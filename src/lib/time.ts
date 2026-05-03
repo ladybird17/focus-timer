@@ -24,11 +24,14 @@ export function formatHm(date: Date): string {
   return `${h}:${m}`;
 }
 
-/** ms를 사람이 읽는 시간으로 — 0시간이면 '12분', 그 외 '1시간 23분' */
-export function formatDuration(ms: number): string {
+/** ms를 사람이 읽는 시간으로 — 언어별 포맷은 messages 함수에 위임 */
+export function formatDuration(
+  ms: number,
+  t: { durationMinOnly: (m: number) => string; durationHourMin: (h: number, m: number) => string },
+): string {
   const totalMin = Math.floor(ms / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  if (h === 0) return `${m}분`;
-  return `${h}시간 ${m}분`;
+  if (h === 0) return t.durationMinOnly(m);
+  return t.durationHourMin(h, m);
 }

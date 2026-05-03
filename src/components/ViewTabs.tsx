@@ -1,4 +1,5 @@
 import type { View } from "../App";
+import { useLang } from "../lib/lang";
 
 interface Props {
   view: View;
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export function ViewTabs({ view, onChangeView }: Props) {
+  const { t } = useLang();
   return (
     <div className="inline-flex rounded-md bg-zinc-100 border border-zinc-200 p-0.5">
       {(["timer", "today"] as const).map((v) => (
@@ -20,7 +22,7 @@ export function ViewTabs({ view, onChangeView }: Props) {
               : "text-zinc-600 hover:text-zinc-900")
           }
         >
-          {v === "timer" ? "타이머" : "오늘"}
+          {v === "timer" ? t.tabTimer : t.tabToday}
         </button>
       ))}
     </div>

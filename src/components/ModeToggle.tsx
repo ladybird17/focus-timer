@@ -1,4 +1,5 @@
 import type { Mode } from "../types";
+import { useLang } from "../lib/lang";
 
 interface Props {
   modes: Mode[];
@@ -8,10 +9,12 @@ interface Props {
 }
 
 export function ModeToggle({ modes, activeId, onChange, disabled }: Props) {
+  const { lang, t } = useLang();
   return (
     <div className="inline-flex rounded-lg bg-white border border-zinc-200 p-1 shadow-sm">
       {modes.map((m) => {
         const active = m.id === activeId;
+        const label = lang === "en" ? t.mode[m.key] : m.label;
         return (
           <button
             key={m.id}
@@ -25,7 +28,7 @@ export function ModeToggle({ modes, activeId, onChange, disabled }: Props) {
                 : "text-zinc-600 hover:text-zinc-900 disabled:opacity-50")
             }
           >
-            {m.label}
+            {label}
           </button>
         );
       })}

@@ -24,6 +24,8 @@ import {
 import { remainingMs } from "../lib/time";
 import { ensureNotificationPermission, notifySessionDone } from "../lib/notify";
 import { playBeepSequence } from "../lib/sound";
+import { useLang } from "../lib/lang";
+import { formatDateLabel } from "../lib/i18n";
 import {
   PRESETS_MIN,
   interruptReasonsFor,
@@ -39,6 +41,7 @@ interface Running {
   sessionId: number;
   startedAt: string;
   plannedMin: number;
+  tagKey: string;
   tagLabel: string;
 }
 
@@ -61,6 +64,7 @@ export default function Timer({
   dayStartHour,
   onChangeDayStartHour,
 }: TimerProps) {
+  const { lang, t } = useLang();
   const [modes, setModes] = useState<Mode[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [modeId, setModeId] = useState<number | null>(null);
@@ -156,18 +160,25 @@ export default function Timer({
     const remain = remainingMs(running.startedAt, running.plannedMin, now);
     if (remain <= 0 && !notifiedRef.current) {
       notifiedRef.current = true;
-      void notifySessionDone(running.tagLabel);
+      const displayTag =
+        lang === "en"
+          ? t.tag[running.tagKey] ?? running.tagLabel
+          : running.tagLabel;
+      void notifySessionDone(displayTag, {
+        title: t.notifyTitle,
+        body: t.notifyBody,
+      });
       void playBeepSequence(beepCount, {
         onBeepStart: flashEnabled ? () => setFlashOn(true) : undefined,
         onBeepEnd: flashEnabled ? () => setFlashOn(false) : undefined,
       }).finally(() => setFlashOn(false));
       setShowReview(true);
     }
-  }, [now, running, beepCount, flashEnabled]);
+  }, [now, running, beepCount, flashEnabled, lang, t]);
 
   async function restoreRunning(session: Session) {
     const tagsForMode = await listTags(session.mode_id);
-    const tag = tagsForMode.find((t) => t.id === session.tag_id);
+    const tag = tagsForMode.find((tg) => tg.id === session.tag_id);
     setModeId(session.mode_id);
     setTags(tagsForMode);
     setTagId(session.tag_id);
@@ -176,7 +187,8 @@ export default function Timer({
       sessionId: session.id,
       startedAt: session.started_at,
       plannedMin: session.planned_min,
-      tagLabel: tag?.label ?? "세션",
+      tagKey: tag?.key ?? "",
+      tagLabel: tag?.label ?? "—",
     });
     setNow(Date.now());
     notifiedRef.current = false;
@@ -186,12 +198,13 @@ export default function Timer({
     if (modeId == null || tagId == null) return;
     try {
       const id = await startSession({ modeId, tagId, plannedMin });
-      const tag = tags.find((t) => t.id === tagId);
+      const tag = tags.find((tg) => tg.id === tagId);
       setRunning({
         sessionId: id,
         startedAt: new Date().toISOString(),
         plannedMin,
-        tagLabel: tag?.label ?? "세션",
+        tagKey: tag?.key ?? "",
+        tagLabel: tag?.label ?? "—",
       });
       setNow(Date.now());
       notifiedRef.current = false;
@@ -270,15 +283,7 @@ export default function Timer({
   };
   const accentHover = ACCENT_HOVER[theme];
 
-  const todayLabel = useMemo(() => {
-    const d = new Date();
-    const dateStr = d.toLocaleDateString("ko-KR", {
-      month: "long",
-      day: "numeric",
-    });
-    const wd = d.toLocaleDateString("ko-KR", { weekday: "short" });
-    return `${dateStr} (${wd})`;
-  }, []);
+  const todayLabel = useMemo(() => formatDateLabel(new Date(), lang), [lang]);
 
   return (
     <main className="min-h-screen flex flex-col bg-[#fffef7] text-zinc-800">
@@ -375,7 +380,7 @@ export default function Timer({
                     : "bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 disabled:opacity-50")
                 }
               >
-                {m}분
+                {t.durationMinOnly(m)}
               </button>
             );
           })}
@@ -410,7 +415,7 @@ export default function Timer({
               if (canStart) e.currentTarget.style.backgroundColor = accent;
             }}
           >
-            시작
+            {t.start}
           </button>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -426,14 +431,14 @@ export default function Timer({
                 (e.currentTarget.style.backgroundColor = accent)
               }
             >
-              완료
+              {t.complete}
             </button>
             <button
               type="button"
               onClick={handleInterruptClick}
               className="py-3 text-base font-semibold rounded-xl bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-100"
             >
-              중단
+              {t.interrupt}
             </button>
           </div>
         )}

@@ -87,6 +87,7 @@ export function interruptedCount(sessions: SessionRow[]): number {
 /** 태그별 집중시간 분포 (도넛용). 0인 항목 제외, ms 내림차순. */
 export interface TagSlice {
   tagId: number;
+  tagKey: string;
   tagLabel: string;
   color: string;
   ms: number;
@@ -108,6 +109,7 @@ export function tagDistribution(sessions: SessionRow[]): TagSlice[] {
     } else {
       map.set(s.tag_id, {
         tagId: s.tag_id,
+        tagKey: s.tag_key,
         tagLabel: s.tag_label,
         color: s.tag_color ?? FALLBACK_COLOR,
         ms,
@@ -118,22 +120,11 @@ export function tagDistribution(sessions: SessionRow[]): TagSlice[] {
   return Array.from(map.values()).sort((a, b) => b.ms - a.ms);
 }
 
-/** 인터럽트 사유 분포 */
+/** 인터럽트 사유 분포 — 라벨은 표시 시점에 i18n 매핑 */
 export interface InterruptSlice {
   reason: InterruptReason;
-  label: string;
   count: number;
 }
-
-const REASON_LABEL: Record<InterruptReason, string> = {
-  urgent_inquiry: "급한 문의",
-  meeting: "회의",
-  cant_focus: "집중 안됨",
-  deploy_incident: "배포/장애",
-  urgent_contact: "급한 연락",
-  work_request: "업무 요청",
-  etc: "기타",
-};
 
 export function interruptDistribution(
   sessions: SessionRow[],
@@ -144,7 +135,7 @@ export function interruptDistribution(
     const r = s.interrupt_reason;
     const cur = map.get(r);
     if (cur) cur.count += 1;
-    else map.set(r, { reason: r, label: REASON_LABEL[r], count: 1 });
+    else map.set(r, { reason: r, count: 1 });
   }
   return Array.from(map.values()).sort((a, b) => b.count - a.count);
 }
