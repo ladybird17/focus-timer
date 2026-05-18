@@ -57,7 +57,7 @@ export function ThemePicker({ theme, onChange }: Props) {
           className="w-3.5 h-3.5 rounded-full border border-zinc-400"
           style={{ backgroundColor: THEMES[theme].frame }}
         />
-        <span className="font-medium">{t.themeLabel}</span>
+        <span className="font-medium text-xs">{THEME_LABELS[theme]}</span>
         <svg
           width="12"
           height="12"
