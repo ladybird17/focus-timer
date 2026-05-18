@@ -6,7 +6,7 @@ import {
 } from "@tauri-apps/api/window";
 
 /** 미니 모드 / 풀 모드 윈도우 크기 (논리 픽셀) */
-export const MINI_SIZE = { width: 360, height: 460 };
+export const MINI_SIZE = { width: 360, height: 520 };
 export const FULL_SIZE = { width: 640, height: 720 };
 /** 미니 모드일 때 화면 가장자리에서 띄울 여백 */
 const MINI_PADDING = 12;

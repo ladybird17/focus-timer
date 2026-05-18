@@ -345,11 +345,16 @@ export default function Timer({
   }, [running, now, plannedMin]);
 
   const displayTagLabel = useMemo(() => {
-    if (!running) return "";
-    return lang === "en"
-      ? t.tag[running.tagKey] ?? running.tagLabel
-      : running.tagLabel;
-  }, [running, lang, t]);
+    if (running) {
+      return lang === "en"
+        ? t.tag[running.tagKey] ?? running.tagLabel
+        : running.tagLabel;
+    }
+    if (tagId == null) return "";
+    const tag = tags.find((tg) => tg.id === tagId);
+    if (!tag) return "";
+    return lang === "en" ? t.tag[tag.key] ?? tag.label : tag.label;
+  }, [running, lang, t, tagId, tags]);
 
   const canStart = modeId != null && tagId != null && !running;
 
@@ -463,6 +468,84 @@ export default function Timer({
         </header>
       )}
 
+      {miniMode && !running && (
+        <>
+          <section className="px-3 pt-1 flex justify-center">
+            <div className="inline-flex rounded-md bg-white border border-zinc-200 p-0.5 shadow-sm">
+              {modes.map((m) => {
+                const active = m.id === modeId;
+                const label = lang === "en" ? t.mode[m.key] : m.label;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setModeId(m.id)}
+                    className={
+                      "px-2 py-0.5 text-xs font-medium rounded transition-colors " +
+                      (active
+                        ? "bg-zinc-800 text-white"
+                        : "text-zinc-600 hover:text-zinc-900")
+                    }
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+          <section className="px-3 pt-1.5 flex justify-center">
+            <div className="flex flex-wrap gap-1 justify-center">
+              {tags.map((tag) => {
+                const active = tag.id === tagId;
+                const color = tag.color ?? "#71717a";
+                const label =
+                  lang === "en" ? t.tag[tag.key] ?? tag.label : tag.label;
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => setTagId(tag.id)}
+                    style={
+                      active
+                        ? { backgroundColor: color, borderColor: color }
+                        : { borderColor: color + "55", color: color }
+                    }
+                    className={
+                      "px-2 py-0.5 text-xs rounded-full border transition-colors " +
+                      (active ? "text-white" : "bg-white hover:bg-zinc-50")
+                    }
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+          <section className="px-3 pt-1.5">
+            <div className="flex flex-wrap items-center justify-center gap-1">
+              {PRESETS_MIN.map((m) => {
+                const active = plannedMin === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setPlannedMin(m)}
+                    className={
+                      "px-2 py-0.5 text-xs rounded transition-colors " +
+                      (active
+                        ? "bg-zinc-800 text-zinc-50"
+                        : "bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200")
+                    }
+                  >
+                    {t.durationMinOnly(m)}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      )}
+
       {!miniMode && (
         <section className="px-6 pt-2">
           <TagPicker
@@ -510,6 +593,7 @@ export default function Timer({
           dialFraction={dialFraction}
           theme={theme}
           flash={flashOn}
+          size={miniMode && !running ? 200 : undefined}
         />
       </section>
 

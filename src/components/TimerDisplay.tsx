@@ -111,9 +111,11 @@ interface Props {
   theme: Theme;
   /** true면 다이얼 안쪽이 밝게 빛남 (종료 알림 동기) */
   flash?: boolean;
+  /** 표시 크기(픽셀). 기본 320. 다른 값을 주면 CSS transform 으로 스케일. */
+  size?: number;
 }
 
-export function TimerDisplay({ dialFraction, theme, flash }: Props) {
+export function TimerDisplay({ dialFraction, theme, flash, size }: Props) {
   const colors = THEMES[theme];
 
   const cardSize = 320;
@@ -192,16 +194,15 @@ export function TimerDisplay({ dialFraction, theme, flash }: Props) {
     );
   }
 
-  return (
-    <div className="flex flex-col items-center">
-      <div
-        className="relative rounded-3xl shadow-md"
-        style={{
-          width: cardSize,
-          height: cardSize,
-          backgroundColor: colors.frame,
-        }}
-      >
+  const card = (
+    <div
+      className="relative rounded-3xl shadow-md"
+      style={{
+        width: cardSize,
+        height: cardSize,
+        backgroundColor: colors.frame,
+      }}
+    >
         <div
           className="absolute top-3 left-4 text-[11px] font-semibold tracking-[0.18em] lowercase"
           style={{ color: colors.frameLabel }}
@@ -240,7 +241,24 @@ export function TimerDisplay({ dialFraction, theme, flash }: Props) {
             }}
           />
         </div>
-      </div>
     </div>
   );
+
+  if (size && size !== cardSize) {
+    const scale = size / cardSize;
+    return (
+      <div style={{ width: size, height: size, position: "relative" }}>
+        <div
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          {card}
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="flex flex-col items-center">{card}</div>;
 }
