@@ -27,6 +27,7 @@ import { playBeepSequence } from "../lib/sound";
 import { useLang } from "../lib/lang";
 import { formatDateLabel } from "../lib/i18n";
 import { setTrayTooltip } from "../lib/tray";
+import { applyMiniMode } from "../lib/window";
 import {
   PRESETS_MIN,
   interruptReasonsFor,
@@ -49,6 +50,7 @@ interface Running {
 const THEME_STORAGE_KEY = "focus-timer.theme";
 const BEEPS_STORAGE_KEY = "focus-timer.beepCount";
 const FLASH_STORAGE_KEY = "focus-timer.flash";
+const MINI_MODE_STORAGE_KEY = "focus-timer.miniMode";
 
 type BeepCount = 1 | 3;
 
@@ -99,6 +101,9 @@ export default function Timer({
     return localStorage.getItem(FLASH_STORAGE_KEY) === "1";
   });
   const [flashOn, setFlashOn] = useState(false);
+  const [miniMode, setMiniMode] = useState<boolean>(() => {
+    return localStorage.getItem(MINI_MODE_STORAGE_KEY) === "1";
+  });
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -121,6 +126,11 @@ export default function Timer({
   useEffect(() => {
     localStorage.setItem(FLASH_STORAGE_KEY, flashEnabled ? "1" : "0");
   }, [flashEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem(MINI_MODE_STORAGE_KEY, miniMode ? "1" : "0");
+    void applyMiniMode(miniMode);
+  }, [miniMode]);
 
   useEffect(() => {
     (async () => {
@@ -294,6 +304,13 @@ export default function Timer({
     return plannedMin / 60;
   }, [running, now, plannedMin]);
 
+  const displayTagLabel = useMemo(() => {
+    if (!running) return "";
+    return lang === "en"
+      ? t.tag[running.tagKey] ?? running.tagLabel
+      : running.tagLabel;
+  }, [running, lang, t]);
+
   const canStart = modeId != null && tagId != null && !running;
 
   const currentModeKey: ModeKey =
@@ -315,28 +332,24 @@ export default function Timer({
 
   return (
     <main className="min-h-screen flex flex-col bg-[#fffef7] text-zinc-800">
-      <header className="px-6 pt-5 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-zinc-700">{todayLabel}</h1>
-          <ModeToggle
-            modes={modes}
-            activeId={modeId}
-            onChange={setModeId}
-            disabled={!!running}
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <ThemePicker theme={theme} onChange={setTheme} />
-          <ViewTabs view={view} onChangeView={onChangeView} />
+      {miniMode ? (
+        <header className="px-3 pt-2 pb-1 flex items-center justify-between gap-2">
+          <div
+            className="min-w-0 flex-1 px-1 text-xs font-medium text-zinc-700 truncate"
+            title={displayTagLabel}
+          >
+            {displayTagLabel}
+          </div>
           <button
             type="button"
-            onClick={() => setShowSettings(true)}
-            aria-label="settings"
-            className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition-colors"
+            onClick={() => setMiniMode(false)}
+            aria-label={t.exitMiniMode}
+            title={t.exitMiniMode}
+            className="shrink-0 p-1.5 rounded-md text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition-colors"
           >
             <svg
-              width="18"
-              height="18"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -344,47 +357,94 @@ export default function Timer({
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
             </svg>
           </button>
-        </div>
-      </header>
-
-      <section className="px-6 pt-2">
-        <TagPicker
-          tags={tags}
-          activeId={tagId}
-          onChange={setTagId}
-          disabled={!!running}
-        />
-      </section>
-
-      <section className="px-6 pt-4">
-        <div className="flex flex-wrap items-center gap-2">
-          {PRESETS_MIN.map((m) => {
-            const active = plannedMin === m;
-            return (
-              <button
-                key={m}
-                type="button"
-                disabled={!!running}
-                onClick={() => setPlannedMin(m)}
-                className={
-                  "px-3 py-1 text-sm rounded-md transition-colors " +
-                  (active
-                    ? "bg-zinc-800 text-zinc-50"
-                    : "bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 disabled:opacity-50")
-                }
+        </header>
+      ) : (
+        <header className="px-6 pt-5 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-sm font-semibold text-zinc-700">{todayLabel}</h1>
+            <ModeToggle
+              modes={modes}
+              activeId={modeId}
+              onChange={setModeId}
+              disabled={!!running}
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <ThemePicker theme={theme} onChange={setTheme} />
+            <ViewTabs view={view} onChangeView={onChangeView} />
+            <button
+              type="button"
+              onClick={() => setShowSettings(true)}
+              aria-label="settings"
+              className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition-colors"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                {t.durationMinOnly(m)}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </button>
+          </div>
+        </header>
+      )}
 
-      <section className="flex-1 flex items-center justify-center px-6">
+      {!miniMode && (
+        <section className="px-6 pt-2">
+          <TagPicker
+            tags={tags}
+            activeId={tagId}
+            onChange={setTagId}
+            disabled={!!running}
+          />
+        </section>
+      )}
+
+      {!miniMode && (
+        <section className="px-6 pt-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {PRESETS_MIN.map((m) => {
+              const active = plannedMin === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  disabled={!!running}
+                  onClick={() => setPlannedMin(m)}
+                  className={
+                    "px-3 py-1 text-sm rounded-md transition-colors " +
+                    (active
+                      ? "bg-zinc-800 text-zinc-50"
+                      : "bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 disabled:opacity-50")
+                  }
+                >
+                  {t.durationMinOnly(m)}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <section
+        className={
+          "flex-1 flex items-center justify-center " +
+          (miniMode ? "px-2" : "px-6")
+        }
+      >
         <TimerDisplay
           dialFraction={dialFraction}
           theme={theme}
@@ -392,7 +452,7 @@ export default function Timer({
         />
       </section>
 
-      <section className="px-6 pb-8">
+      <section className={miniMode ? "px-4 pb-3" : "px-6 pb-8"}>
         {!running ? (
           <button
             type="button"
@@ -457,6 +517,11 @@ export default function Timer({
         onChangeBeepCount={setBeepCount}
         flashEnabled={flashEnabled}
         onChangeFlashEnabled={setFlashEnabled}
+        miniMode={miniMode}
+        onChangeMiniMode={(on) => {
+          setMiniMode(on);
+          if (on) setShowSettings(false);
+        }}
         dayStartHour={dayStartHour}
         onChangeDayStartHour={onChangeDayStartHour}
         onResetToday={handleResetToday}

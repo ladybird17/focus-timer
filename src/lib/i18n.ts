@@ -62,6 +62,9 @@ export interface Messages {
   beepCountSuffix: (n: 1 | 3) => string; // "1회"/"3회" → "1×"/"3×"
   flashLabel: string;
   flashDesc: string;
+  miniModeLabel: string;
+  miniModeDesc: string;
+  exitMiniMode: string;
   dayStartLabel: string;
   dayStartDesc: string;
   dayStartUnit: string; // "기준"
@@ -151,6 +154,9 @@ const ko: Messages = {
   beepCountSuffix: (n) => `${n}회`,
   flashLabel: "깜빡임",
   flashDesc: "알림음과 동시에 다이얼이 밝게 빛남",
+  miniModeLabel: "미니 모드",
+  miniModeDesc: "작은 창으로 오른쪽 위에 고정되고 항상 위에 표시됩니다",
+  exitMiniMode: "미니 모드 해제",
   dayStartLabel: "하루 시작 시각",
   dayStartDesc:
     '"오늘"의 기준 시각. 예: 5시 → 5월 3일은 5월 3일 5시 ~ 5월 4일 5시 직전',
@@ -260,6 +266,9 @@ const en: Messages = {
   beepCountSuffix: (n) => `${n}×`,
   flashLabel: "Flash",
   flashDesc: "Dial flashes brightly with the sound",
+  miniModeLabel: "Mini Mode",
+  miniModeDesc: "Shrink to the top-right corner, always on top",
+  exitMiniMode: "Exit mini mode",
   dayStartLabel: "Day Start Time",
   dayStartDesc:
     'Defines the start of "today". e.g. 5 AM → May 3 means May 3 05:00 to just before May 4 05:00',

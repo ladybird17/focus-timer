@@ -8,6 +8,8 @@ interface Props {
   onChangeBeepCount: (n: 1 | 3) => void;
   flashEnabled: boolean;
   onChangeFlashEnabled: (v: boolean) => void;
+  miniMode: boolean;
+  onChangeMiniMode: (v: boolean) => void;
   dayStartHour: number;
   onChangeDayStartHour: (h: number) => void;
   onResetToday: () => Promise<number>;
@@ -20,6 +22,8 @@ export function SettingsModal({
   onChangeBeepCount,
   flashEnabled,
   onChangeFlashEnabled,
+  miniMode,
+  onChangeMiniMode,
   dayStartHour,
   onChangeDayStartHour,
   onResetToday,
@@ -140,6 +144,37 @@ export function SettingsModal({
                 className={
                   "px-3 py-1 rounded text-sm font-medium transition-colors " +
                   (flashEnabled
+                    ? "bg-zinc-800 text-zinc-50"
+                    : "text-zinc-600 hover:text-zinc-900")
+                }
+              >
+                {t.on}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-medium text-zinc-800">{t.miniModeLabel}</div>
+            <p className="text-xs text-zinc-500 mt-0.5">{t.miniModeDesc}</p>
+            <div className="mt-2 inline-flex rounded-md bg-zinc-100 border border-zinc-200 p-0.5">
+              <button
+                type="button"
+                onClick={() => onChangeMiniMode(false)}
+                className={
+                  "px-3 py-1 rounded text-sm font-medium transition-colors " +
+                  (!miniMode
+                    ? "bg-zinc-800 text-zinc-50"
+                    : "text-zinc-600 hover:text-zinc-900")
+                }
+              >
+                {t.off}
+              </button>
+              <button
+                type="button"
+                onClick={() => onChangeMiniMode(true)}
+                className={
+                  "px-3 py-1 rounded text-sm font-medium transition-colors " +
+                  (miniMode
                     ? "bg-zinc-800 text-zinc-50"
                     : "text-zinc-600 hover:text-zinc-900")
                 }
