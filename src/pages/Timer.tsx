@@ -51,6 +51,9 @@ const THEME_STORAGE_KEY = "focus-timer.theme";
 const BEEPS_STORAGE_KEY = "focus-timer.beepCount";
 const FLASH_STORAGE_KEY = "focus-timer.flash";
 const MINI_MODE_STORAGE_KEY = "focus-timer.miniMode";
+const LAST_MODE_KEY = "focus-timer.lastModeKey";
+const LAST_TAG_KEY_PREFIX = "focus-timer.lastTagKey.";
+const LAST_PLANNED_MIN_KEY = "focus-timer.lastPlannedMin";
 
 type BeepCount = 1 | 3;
 
@@ -72,7 +75,12 @@ export default function Timer({
   const [tags, setTags] = useState<Tag[]>([]);
   const [modeId, setModeId] = useState<number | null>(null);
   const [tagId, setTagId] = useState<number | null>(null);
-  const [plannedMin, setPlannedMin] = useState<number>(60);
+  const [plannedMin, setPlannedMin] = useState<number>(() => {
+    const raw = localStorage.getItem(LAST_PLANNED_MIN_KEY);
+    if (raw == null) return 60;
+    const n = Number(raw);
+    return PRESETS_MIN.includes(n) ? n : 60;
+  });
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
     // 옛 이름 → 새 이름 매핑 (디자인 의도가 같음)
@@ -133,11 +141,36 @@ export default function Timer({
   }, [miniMode]);
 
   useEffect(() => {
+    if (modeId == null) return;
+    const modeKey = modes.find((m) => m.id === modeId)?.key;
+    if (modeKey) localStorage.setItem(LAST_MODE_KEY, modeKey);
+  }, [modeId, modes]);
+
+  useEffect(() => {
+    if (tagId == null || modeId == null) return;
+    const tag = tags.find((tg) => tg.id === tagId);
+    // 모드 전환 직후 tags가 아직 옛 모드 것일 때는 잘못된 매핑 방지
+    if (!tag || tag.mode_id !== modeId) return;
+    const modeKey = modes.find((m) => m.id === modeId)?.key;
+    if (modeKey) {
+      localStorage.setItem(LAST_TAG_KEY_PREFIX + modeKey, tag.key);
+    }
+  }, [tagId, modeId, modes, tags]);
+
+  useEffect(() => {
+    localStorage.setItem(LAST_PLANNED_MIN_KEY, String(plannedMin));
+  }, [plannedMin]);
+
+  useEffect(() => {
     (async () => {
       try {
         const ms = await listModes();
         setModes(ms);
-        if (ms.length > 0) setModeId(ms[0].id);
+        if (ms.length > 0) {
+          const savedKey = localStorage.getItem(LAST_MODE_KEY);
+          const matched = savedKey ? ms.find((m) => m.key === savedKey) : null;
+          setModeId(matched?.id ?? ms[0].id);
+        }
 
         const existing = await getRunningSession();
         if (existing) {
@@ -156,9 +189,16 @@ export default function Timer({
     (async () => {
       const ts = await listTags(modeId);
       setTags(ts);
-      setTagId(ts[0]?.id ?? null);
+      const modeKey = modes.find((m) => m.id === modeId)?.key;
+      const savedTagKey = modeKey
+        ? localStorage.getItem(LAST_TAG_KEY_PREFIX + modeKey)
+        : null;
+      const matched = savedTagKey
+        ? ts.find((tg) => tg.key === savedTagKey)
+        : null;
+      setTagId(matched?.id ?? ts[0]?.id ?? null);
     })();
-  }, [modeId, running]);
+  }, [modeId, running, modes]);
 
   useEffect(() => {
     if (!running) return;
