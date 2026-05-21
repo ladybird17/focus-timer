@@ -23,6 +23,7 @@ interface BarDatum {
   tagKey: string;
   tagLabel: string;
   status: SessionRow["status"];
+  selfReview: SessionRow["self_review"];
   startedAt: string;
   endedAt: string | null;
 }
@@ -54,6 +55,7 @@ export function Timeline({ sessions }: Props) {
       tagKey: s.tag_key,
       tagLabel: s.tag_label,
       status: s.status,
+      selfReview: s.self_review,
       startedAt: s.started_at,
       endedAt: s.ended_at,
     };
@@ -105,10 +107,17 @@ export function Timeline({ sessions }: Props) {
               const range = `${formatHm(new Date(d.startedAt))} ~ ${
                 d.endedAt ? formatHm(new Date(d.endedAt)) : "?"
               }`;
+              const reviewLabel =
+                d.selfReview === "focused"
+                  ? t.reviewFocused
+                  : d.selfReview === "distracted"
+                    ? t.reviewDistracted
+                    : null;
               return (
                 <div className="px-2.5 py-1.5 rounded-md bg-zinc-900 text-zinc-50 text-xs shadow-lg">
                   <div className="font-medium">
                     {display} · {status}
+                    {reviewLabel ? ` · ${reviewLabel}` : ""}
                   </div>
                   <div className="tabular-nums text-zinc-300">
                     {range} ({formatDuration(d.duration, t)})

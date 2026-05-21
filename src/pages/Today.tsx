@@ -3,15 +3,19 @@ import { KpiCard } from "../components/charts/KpiCard";
 import { DonutChart } from "../components/charts/DonutChart";
 import { Timeline } from "../components/charts/Timeline";
 import { InterruptBar } from "../components/charts/InterruptBar";
+import { ModeCompare } from "../components/charts/ModeCompare";
 import { ViewTabs } from "../components/ViewTabs";
 import type { View } from "../App";
 import {
   bestStreak,
   completedCount,
+  dailyStreak,
   filterByMode,
+  getCompletedDays,
   getSessionsBetween,
   interruptDistribution,
   interruptedCount,
+  reviewBreakdown,
   tagDistribution,
   todayRange,
   totalFocusMs,
@@ -31,6 +35,7 @@ interface Props {
 export default function Today({ view, onChangeView, dayStartHour }: Props) {
   const { lang, t } = useLang();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [completedDays, setCompletedDays] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<ModeFilter>("all");
@@ -43,8 +48,14 @@ export default function Today({ view, onChangeView, dayStartHour }: Props) {
     setError(null);
     (async () => {
       try {
-        const rows = await getSessionsBetween(range.fromIso, range.toIso);
-        if (!cancelled) setSessions(rows);
+        const [rows, days] = await Promise.all([
+          getSessionsBetween(range.fromIso, range.toIso),
+          getCompletedDays(dayStartHour, filter),
+        ]);
+        if (!cancelled) {
+          setSessions(rows);
+          setCompletedDays(days);
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -54,7 +65,7 @@ export default function Today({ view, onChangeView, dayStartHour }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [range.fromIso, range.toIso]);
+  }, [range.fromIso, range.toIso, dayStartHour, filter]);
 
   const filtered = useMemo(
     () => filterByMode(sessions, filter),
@@ -67,6 +78,8 @@ export default function Today({ view, onChangeView, dayStartHour }: Props) {
   const streak = bestStreak(filtered);
   const tags = tagDistribution(filtered);
   const interrupts = interruptDistribution(filtered);
+  const daily = dailyStreak(completedDays, dayStartHour);
+  const review = reviewBreakdown(filtered);
 
   const FILTERS: { key: ModeFilter; label: string }[] = [
     { key: "all", label: t.filterAll },
@@ -131,8 +144,43 @@ export default function Today({ view, onChangeView, dayStartHour }: Props) {
             value={streak ? t.streakValue(streak.count) : t.none}
             hint={streakHint || undefined}
           />
+          <KpiCard
+            label={t.kpiDailyStreak}
+            value={daily.count > 0 ? t.daysValue(daily.count) : t.none}
+            hint={
+              daily.count > 0
+                ? daily.updatedToday
+                  ? t.dailyStreakUpdatedToday
+                  : t.dailyStreakPendingToday
+                : undefined
+            }
+          />
+          <KpiCard
+            label={t.kpiFocusRate}
+            value={
+              review.reviewedTotal > 0
+                ? t.focusRateValue(review.focusedRate)
+                : t.none
+            }
+            hint={
+              review.reviewedTotal > 0
+                ? t.reviewHint(review.focused, review.distracted)
+                : undefined
+            }
+          />
         </div>
       </section>
+
+      {filter === "all" && (
+        <section className="px-6 pt-6">
+          <h2 className="text-sm font-semibold text-zinc-700 mb-3">
+            {t.sectionModeCompare}
+          </h2>
+          <div className="p-4 rounded-xl bg-white border border-zinc-200">
+            <ModeCompare sessions={sessions} />
+          </div>
+        </section>
+      )}
 
       <section className="px-6 pt-6">
         <h2 className="text-sm font-semibold text-zinc-700 mb-3">

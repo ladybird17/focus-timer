@@ -120,6 +120,27 @@ export function tagDistribution(sessions: SessionRow[]): TagSlice[] {
   return Array.from(map.values()).sort((a, b) => b.ms - a.ms);
 }
 
+/** 자기평가 집계 — completed 세션 중 focused / distracted 비율 */
+export interface ReviewBreakdown {
+  focused: number;
+  distracted: number;
+  reviewedTotal: number;
+  focusedRate: number; // 0~1
+}
+
+export function reviewBreakdown(sessions: SessionRow[]): ReviewBreakdown {
+  let focused = 0;
+  let distracted = 0;
+  for (const s of sessions) {
+    if (s.status !== "completed") continue;
+    if (s.self_review === "focused") focused += 1;
+    else if (s.self_review === "distracted") distracted += 1;
+  }
+  const reviewedTotal = focused + distracted;
+  const focusedRate = reviewedTotal > 0 ? focused / reviewedTotal : 0;
+  return { focused, distracted, reviewedTotal, focusedRate };
+}
+
 /** 인터럽트 사유 분포 — 라벨은 표시 시점에 i18n 매핑 */
 export interface InterruptSlice {
   reason: InterruptReason;
@@ -196,4 +217,80 @@ export function filterByMode(
 ): SessionRow[] {
   if (filter === "all") return sessions;
   return sessions.filter((s) => s.mode_key === filter);
+}
+
+/**
+ * dayStartHour 기준으로 logical day key (yyyy-mm-dd) 계산.
+ * 예: dayStartHour=5, 새벽 3시 → "어제" 날짜로 계산.
+ */
+function logicalDayKey(date: Date, dayStartHour: number): string {
+  const d = new Date(date);
+  d.setHours(d.getHours() - dayStartHour);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** completed 세션이 있는 logical day 목록 (최근 → 과거). 모드 필터 적용 가능. */
+export async function getCompletedDays(
+  dayStartHour: number,
+  filter: ModeFilter = "all",
+): Promise<Set<string>> {
+  const db = await getDb();
+  const where =
+    filter === "all"
+      ? "s.status = 'completed'"
+      : "s.status = 'completed' AND m.key = $1";
+  const params = filter === "all" ? [] : [filter];
+  const rows = await db.select<{ started_at: string }[]>(
+    `SELECT s.started_at
+     FROM sessions s
+     JOIN modes m ON m.id = s.mode_id
+     WHERE ${where}
+     ORDER BY s.started_at DESC
+     LIMIT 2000`,
+    params,
+  );
+  const days = new Set<string>();
+  for (const r of rows) {
+    days.add(logicalDayKey(new Date(r.started_at), dayStartHour));
+  }
+  return days;
+}
+
+/**
+ * 데일리 스트릭 — 오늘(또는 어제)부터 거꾸로 거슬러 올라가며 completed 세션이 있는 연속 일수.
+ * - 오늘 갱신했으면 오늘 포함, 아직 안 했으면 어제까지로 계산.
+ */
+export interface DailyStreak {
+  count: number;
+  updatedToday: boolean;
+}
+
+export function dailyStreak(
+  days: Set<string>,
+  dayStartHour: number,
+  now: Date = new Date(),
+): DailyStreak {
+  const todayKey = logicalDayKey(now, dayStartHour);
+  const updatedToday = days.has(todayKey);
+
+  const cursor = new Date(now);
+  cursor.setHours(cursor.getHours() - dayStartHour);
+  if (!updatedToday) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let count = 0;
+  while (true) {
+    const y = cursor.getFullYear();
+    const m = String(cursor.getMonth() + 1).padStart(2, "0");
+    const d = String(cursor.getDate()).padStart(2, "0");
+    const key = `${y}-${m}-${d}`;
+    if (!days.has(key)) break;
+    count += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return { count, updatedToday };
 }

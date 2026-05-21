@@ -34,12 +34,21 @@ export interface Messages {
   kpiTotalFocus: string;
   kpiCompleted: string;
   kpiBestStreak: string;
+  kpiDailyStreak: string;
+  kpiFocusRate: string; // 집중도
   countSuffix: (n: number) => string; // "회" / "x"
   stoppedHint: (n: number) => string;
   streakValue: (n: number) => string; // "{n}연속"
+  daysValue: (n: number) => string; // "{n}일" / "{n} day(s)"
+  dailyStreakUpdatedToday: string; // 오늘 갱신
+  dailyStreakPendingToday: string; // 오늘 아직
+  focusRateValue: (rate: number) => string; // "{n}%"
+  reviewHint: (focused: number, distracted: number) => string; // "잘됨 N · 흐트러짐 M"
   sectionTagDistribution: string;
   sectionTimeline: string;
   sectionInterruptReasons: string;
+  sectionModeCompare: string;
+  modeCompareEmpty: string;
   loading: string;
 
   // 차트 빈 상태 / 툴팁
@@ -129,12 +138,21 @@ const ko: Messages = {
   kpiTotalFocus: "총 집중시간",
   kpiCompleted: "완료 세션",
   kpiBestStreak: "베스트 스트릭",
+  kpiDailyStreak: "데일리 스트릭",
+  kpiFocusRate: "집중도",
   countSuffix: (n) => `${n}회`,
   stoppedHint: (n) => `중단 ${n}회`,
   streakValue: (n) => `${n}연속`,
+  daysValue: (n) => `${n}일`,
+  dailyStreakUpdatedToday: "오늘 갱신",
+  dailyStreakPendingToday: "오늘 아직",
+  focusRateValue: (rate) => `${Math.round(rate * 100)}%`,
+  reviewHint: (f, d) => `잘됨 ${f} · 흐트러짐 ${d}`,
   sectionTagDistribution: "태그별 분포",
   sectionTimeline: "타임라인",
   sectionInterruptReasons: "인터럽트 사유",
+  sectionModeCompare: "모드별 비교",
+  modeCompareEmpty: "비교할 세션이 없습니다",
   loading: "불러오는 중…",
 
   donutEmpty: "완료된 세션이 없습니다",
@@ -241,12 +259,21 @@ const en: Messages = {
   kpiTotalFocus: "Total Focus",
   kpiCompleted: "Completed",
   kpiBestStreak: "Best Streak",
+  kpiDailyStreak: "Daily Streak",
+  kpiFocusRate: "Focus Rate",
   countSuffix: (n) => `${n}×`,
   stoppedHint: (n) => `${n} stopped`,
   streakValue: (n) => `${n} in a row`,
+  daysValue: (n) => `${n} day${n === 1 ? "" : "s"}`,
+  dailyStreakUpdatedToday: "Updated today",
+  dailyStreakPendingToday: "Not yet today",
+  focusRateValue: (rate) => `${Math.round(rate * 100)}%`,
+  reviewHint: (f, d) => `Focused ${f} · Distracted ${d}`,
   sectionTagDistribution: "By Tag",
   sectionTimeline: "Timeline",
   sectionInterruptReasons: "Interrupts",
+  sectionModeCompare: "By Mode",
+  modeCompareEmpty: "No sessions to compare",
   loading: "Loading…",
 
   donutEmpty: "No completed sessions",
