@@ -1,4 +1,5 @@
 import type { InterruptReason, ModeKey } from "../types";
+import { MAX_TAGS_PER_MODE } from "../types";
 
 export type Lang = "ko" | "en";
 
@@ -20,6 +21,17 @@ export interface Messages {
   // ViewTabs
   tabTimer: string;
   tabToday: string;
+  tabPatterns: string;
+
+  // 패턴 페이지
+  patternsRangeWeek: string; // "최근 7일" / "Last 7 days"
+  patternsRangeMonth: string; // "최근 30일" / "Last 30 days"
+  patternsRangeSuffix: (fromLabel: string, toLabel: string) => string;
+  sectionInterruptHeatmap: string;
+  heatmapEmpty: string;
+  heatmapTooltip: (dow: string, hour: number, count: number) => string;
+  dowShort: [string, string, string, string, string, string, string]; // 월~일
+  hourLabel: (h: number) => string;
 
   // 시간 포맷 (formatDuration)
   durationMinOnly: (m: number) => string; // "12분" / "12 min"
@@ -60,6 +72,18 @@ export interface Messages {
   statusInterrupted: string;
   countTimes: (n: number) => string; // "{n}회" / "{n}x"
   sessionsCount: (n: number) => string; // "{n}세션" / "{n} sessions"
+
+  // 태그 추가 / 삭제
+  tagAddAria: string;
+  tagDeleteAria: (label: string) => string;
+  tagNamePlaceholder: string;
+  tagNameEnPlaceholder: string;
+  tagAddSubmit: string;
+  tagCount: (n: number, max: number) => string;
+  tagDeleteConfirm: (label: string) => string;
+  tagDeleteKeepsData: string;
+  tagDeleteBtn: string;
+  tagError: (code: string) => string;
 
   // 테마 선택
   themeLabel: string;
@@ -128,6 +152,17 @@ const ko: Messages = {
 
   tabTimer: "타이머",
   tabToday: "오늘",
+  tabPatterns: "패턴",
+
+  patternsRangeWeek: "최근 7일",
+  patternsRangeMonth: "최근 30일",
+  patternsRangeSuffix: (from, to) => `${from} ~ ${to}`,
+  sectionInterruptHeatmap: "인터럽트 시간대 히트맵",
+  heatmapEmpty: "인터럽트 기록이 없습니다",
+  heatmapTooltip: (dow, hour, count) =>
+    `${dow} ${String(hour).padStart(2, "0")}시 · ${count}회`,
+  dowShort: ["월", "화", "수", "목", "금", "토", "일"],
+  hourLabel: (h) => `${h}`,
 
   durationMinOnly: (m) => `${m}분`,
   durationHourMin: (h, m) => `${h}시간 ${m}분`,
@@ -163,6 +198,34 @@ const ko: Messages = {
   statusInterrupted: "중단",
   countTimes: (n) => `${n}회`,
   sessionsCount: (n) => `${n}세션`,
+
+  tagAddAria: "태그 추가",
+  tagDeleteAria: (label) => `${label} 태그 삭제`,
+  tagNamePlaceholder: "태그 이름",
+  tagNameEnPlaceholder: "English (선택)",
+  tagAddSubmit: "추가",
+  tagCount: (n, max) => `${n} / ${max}`,
+  tagDeleteConfirm: (label) => `「${label}」 태그를 삭제할까요?`,
+  tagDeleteKeepsData: "이 태그로 쌓인 지난 기록과 통계는 그대로 유지됩니다.",
+  tagDeleteBtn: "삭제",
+  tagError: (code) => {
+    switch (code) {
+      case "EMPTY_LABEL":
+        return "태그 이름을 입력해주세요";
+      case "TAG_LIMIT":
+        return `태그는 모드당 최대 ${MAX_TAGS_PER_MODE}개까지예요`;
+      case "DUPLICATE_TAG":
+        return "같은 이름의 태그가 이미 있어요";
+      case "TAG_IN_USE":
+        return "진행 중인 세션이 쓰고 있는 태그예요";
+      case "LAST_TAG":
+        return "마지막 남은 태그는 삭제할 수 없어요";
+      case "TAG_NOT_FOUND":
+        return "태그를 찾을 수 없어요";
+      default:
+        return `오류: ${code}`;
+    }
+  },
 
   themeLabel: "테마",
 
@@ -249,6 +312,17 @@ const en: Messages = {
 
   tabTimer: "Timer",
   tabToday: "Today",
+  tabPatterns: "Patterns",
+
+  patternsRangeWeek: "Last 7 days",
+  patternsRangeMonth: "Last 30 days",
+  patternsRangeSuffix: (from, to) => `${from} – ${to}`,
+  sectionInterruptHeatmap: "Interrupt Heatmap",
+  heatmapEmpty: "No interrupts recorded",
+  heatmapTooltip: (dow, hour, count) =>
+    `${dow} ${String(hour).padStart(2, "0")}:00 · ${count}×`,
+  dowShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  hourLabel: (h) => `${h}`,
 
   durationMinOnly: (m) => `${m} min`,
   durationHourMin: (h, m) => `${h}h ${m}m`,
@@ -284,6 +358,34 @@ const en: Messages = {
   statusInterrupted: "Stopped",
   countTimes: (n) => `${n}×`,
   sessionsCount: (n) => `${n} session${n === 1 ? "" : "s"}`,
+
+  tagAddAria: "Add tag",
+  tagDeleteAria: (label) => `Delete tag ${label}`,
+  tagNamePlaceholder: "Tag name",
+  tagNameEnPlaceholder: "English (optional)",
+  tagAddSubmit: "Add",
+  tagCount: (n, max) => `${n} / ${max}`,
+  tagDeleteConfirm: (label) => `Delete the "${label}" tag?`,
+  tagDeleteKeepsData: "Past sessions and stats for this tag stay intact.",
+  tagDeleteBtn: "Delete",
+  tagError: (code) => {
+    switch (code) {
+      case "EMPTY_LABEL":
+        return "Please enter a tag name";
+      case "TAG_LIMIT":
+        return `Up to ${MAX_TAGS_PER_MODE} tags per mode`;
+      case "DUPLICATE_TAG":
+        return "A tag with that name already exists";
+      case "TAG_IN_USE":
+        return "A running session is using this tag";
+      case "LAST_TAG":
+        return "Can't delete the last remaining tag";
+      case "TAG_NOT_FOUND":
+        return "Tag not found";
+      default:
+        return `Error: ${code}`;
+    }
+  },
 
   themeLabel: "Theme",
 
@@ -358,6 +460,31 @@ const en: Messages = {
 };
 
 export const MESSAGES: Record<Lang, Messages> = { ko, en };
+
+/**
+ * 태그 표시명.
+ * - ko: 항상 label
+ * - en: 사용자가 만든 태그는 label_en, 시드 태그(label_en = null)는 i18n 사전
+ *
+ * label_en을 사전보다 먼저 보는 이유: 사용자가 시드 태그와 같은 key로 슬러그되는
+ * 이름(예: 공부 모드의 "Meeting")을 만들어도 엉뚱한 사전 값을 집어오지 않게 하려고.
+ */
+export function resolveTagLabel(
+  tag: { key: string; label: string; label_en?: string | null },
+  lang: Lang,
+  dict: Record<string, string>,
+): string {
+  if (lang === "ko") return tag.label;
+  return tag.label_en ?? dict[tag.key] ?? tag.label;
+}
+
+/** 짧은 날짜 라벨 — "5/14" / "May 14" */
+export function formatDateShort(date: Date, lang: Lang): string {
+  if (lang === "ko") {
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 /** date-fns/Intl 없이 ko/en에 맞춘 날짜 라벨 */
 export function formatDateLabel(date: Date, lang: Lang): string {

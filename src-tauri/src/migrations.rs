@@ -78,5 +78,13 @@ WHERE key = 'job-prep'
 "#,
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "add label_en to tags for user-created tags",
+            sql: r#"
+ALTER TABLE tags ADD COLUMN label_en TEXT;
+"#,
+            kind: MigrationKind::Up,
+        },
     ]
 }

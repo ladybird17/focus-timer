@@ -9,6 +9,7 @@ export interface SessionRow {
   tag_id: number;
   tag_key: string;
   tag_label: string;
+  tag_label_en: string | null;
   tag_color: string | null;
   planned_min: number;
   started_at: string;
@@ -49,11 +50,13 @@ export async function getSessionsBetween(
   const rows = await db.select<SessionRow[]>(
     `SELECT
        s.id, s.mode_id, m.key AS mode_key,
-       s.tag_id, t.key AS tag_key, t.label AS tag_label, t.color AS tag_color,
+       s.tag_id, t.key AS tag_key, t.label AS tag_label,
+       t.label_en AS tag_label_en, t.color AS tag_color,
        s.planned_min, s.started_at, s.ended_at, s.status,
        s.interrupt_reason, s.self_review
      FROM sessions s
      JOIN modes m ON m.id = s.mode_id
+     -- archived 조건을 일부러 걸지 않음: 삭제(아카이브)한 태그의 과거 기록도 통계에 그대로 남아야 함
      JOIN tags  t ON t.id = s.tag_id
      WHERE s.started_at >= $1 AND s.started_at < $2
        AND s.status != 'running'
@@ -89,6 +92,7 @@ export interface TagSlice {
   tagId: number;
   tagKey: string;
   tagLabel: string;
+  tagLabelEn: string | null;
   color: string;
   ms: number;
   count: number;
@@ -111,6 +115,7 @@ export function tagDistribution(sessions: SessionRow[]): TagSlice[] {
         tagId: s.tag_id,
         tagKey: s.tag_key,
         tagLabel: s.tag_label,
+        tagLabelEn: s.tag_label_en,
         color: s.tag_color ?? FALLBACK_COLOR,
         ms,
         count: 1,
@@ -217,6 +222,24 @@ export function filterByMode(
 ): SessionRow[] {
   if (filter === "all") return sessions;
   return sessions.filter((s) => s.mode_key === filter);
+}
+
+/**
+ * 시간대 × 요일 인터럽트 히트맵.
+ * 반환: 7행(요일) × 24열(시간대) 행렬, 값은 인터럽트 횟수.
+ * 요일 인덱스: 월=0, 화=1, ..., 일=6.
+ */
+export function interruptHeatmap(sessions: SessionRow[]): number[][] {
+  const grid: number[][] = Array.from({ length: 7 }, () =>
+    new Array<number>(24).fill(0),
+  );
+  for (const s of sessions) {
+    if (s.status !== "interrupted") continue;
+    const d = new Date(s.started_at);
+    const dow = (d.getDay() + 6) % 7; // 일=0 → 월=0
+    grid[dow][d.getHours()] += 1;
+  }
+  return grid;
 }
 
 /**

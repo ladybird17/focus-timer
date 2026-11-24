@@ -2,6 +2,19 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import type { TagSlice } from "../../lib/stats";
 import { formatDuration } from "../../lib/time";
 import { useLang } from "../../lib/lang";
+import { resolveTagLabel, type Lang } from "../../lib/i18n";
+
+function sliceLabel(
+  d: TagSlice,
+  lang: Lang,
+  dict: Record<string, string>,
+): string {
+  return resolveTagLabel(
+    { key: d.tagKey, label: d.tagLabel, label_en: d.tagLabelEn },
+    lang,
+    dict,
+  );
+}
 
 interface Props {
   data: TagSlice[];
@@ -43,8 +56,7 @@ export function DonutChart({ data, centerLabel }: Props) {
               content={({ active, payload }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 const p = payload[0].payload as TagSlice;
-                const display =
-                  lang === "en" ? t.tag[p.tagKey] ?? p.tagLabel : p.tagLabel;
+                const display = sliceLabel(p, lang, t.tag);
                 return (
                   <div className="px-2.5 py-1.5 rounded-md bg-zinc-900 text-zinc-50 text-xs shadow-lg">
                     <div className="font-medium">{display}</div>
@@ -68,8 +80,7 @@ export function DonutChart({ data, centerLabel }: Props) {
       </div>
       <ul className="flex-1 space-y-1.5 text-sm">
         {data.map((d) => {
-          const display =
-            lang === "en" ? t.tag[d.tagKey] ?? d.tagLabel : d.tagLabel;
+          const display = sliceLabel(d, lang, t.tag);
           return (
             <li key={d.tagId} className="flex items-center gap-2">
               <span

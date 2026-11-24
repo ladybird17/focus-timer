@@ -10,6 +10,7 @@ import {
 import { durationMs, timelineRange, type SessionRow } from "../../lib/stats";
 import { formatHm, formatDuration } from "../../lib/time";
 import { useLang } from "../../lib/lang";
+import { resolveTagLabel } from "../../lib/i18n";
 
 interface Props {
   sessions: SessionRow[];
@@ -22,6 +23,7 @@ interface BarDatum {
   color: string;
   tagKey: string;
   tagLabel: string;
+  tagLabelEn: string | null;
   status: SessionRow["status"];
   selfReview: SessionRow["self_review"];
   startedAt: string;
@@ -54,6 +56,7 @@ export function Timeline({ sessions }: Props) {
       color: s.tag_color ?? FALLBACK_COLOR,
       tagKey: s.tag_key,
       tagLabel: s.tag_label,
+      tagLabelEn: s.tag_label_en,
       status: s.status,
       selfReview: s.self_review,
       startedAt: s.started_at,
@@ -102,8 +105,11 @@ export function Timeline({ sessions }: Props) {
               const d = payload[0].payload as BarDatum;
               const status =
                 d.status === "completed" ? t.statusCompleted : t.statusInterrupted;
-              const display =
-                lang === "en" ? t.tag[d.tagKey] ?? d.tagLabel : d.tagLabel;
+              const display = resolveTagLabel(
+                { key: d.tagKey, label: d.tagLabel, label_en: d.tagLabelEn },
+                lang,
+                t.tag,
+              );
               const range = `${formatHm(new Date(d.startedAt))} ~ ${
                 d.endedAt ? formatHm(new Date(d.endedAt)) : "?"
               }`;

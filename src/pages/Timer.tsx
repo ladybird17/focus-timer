@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ModeToggle } from "../components/ModeToggle";
-import { TagPicker } from "../components/TagPicker";
+import { TagPicker, type AddTagInput } from "../components/TagPicker";
 import {
   TimerDisplay,
   THEMES,
@@ -13,19 +13,22 @@ import { SettingsModal } from "../components/SettingsModal";
 import { ViewTabs } from "../components/ViewTabs";
 import type { View } from "../App";
 import {
+  archiveTag,
   completeSession,
+  createTag,
   deleteTodaySessions,
   getRunningSession,
   interruptSession,
   listModes,
   listTags,
   startSession,
+  TagError,
 } from "../lib/db";
 import { remainingMs } from "../lib/time";
 import { ensureNotificationPermission, notifySessionDone } from "../lib/notify";
 import { playBeepSequence } from "../lib/sound";
 import { useLang } from "../lib/lang";
-import { formatDateLabel } from "../lib/i18n";
+import { formatDateLabel, resolveTagLabel } from "../lib/i18n";
 import { setTrayTooltip } from "../lib/tray";
 import { applyMiniMode } from "../lib/window";
 import {
@@ -45,6 +48,7 @@ interface Running {
   plannedMin: number;
   tagKey: string;
   tagLabel: string;
+  tagLabelEn: string | null;
 }
 
 const THEME_STORAGE_KEY = "focus-timer.theme";
@@ -218,10 +222,15 @@ export default function Timer({
     const remainMin = Math.max(0, Math.ceil(remain / 60000));
     if (lastTrayMinRef.current === remainMin) return;
     lastTrayMinRef.current = remainMin;
-    const displayTag =
-      lang === "en"
-        ? t.tag[running.tagKey] ?? running.tagLabel
-        : running.tagLabel;
+    const displayTag = resolveTagLabel(
+      {
+        key: running.tagKey,
+        label: running.tagLabel,
+        label_en: running.tagLabelEn,
+      },
+      lang,
+      t.tag,
+    );
     const tail =
       lang === "en"
         ? `${remainMin}m left · ${displayTag}`
@@ -234,10 +243,15 @@ export default function Timer({
     const remain = remainingMs(running.startedAt, running.plannedMin, now);
     if (remain <= 0 && !notifiedRef.current) {
       notifiedRef.current = true;
-      const displayTag =
-        lang === "en"
-          ? t.tag[running.tagKey] ?? running.tagLabel
-          : running.tagLabel;
+      const displayTag = resolveTagLabel(
+        {
+          key: running.tagKey,
+          label: running.tagLabel,
+          label_en: running.tagLabelEn,
+        },
+        lang,
+        t.tag,
+      );
       void notifySessionDone(displayTag, {
         title: t.notifyTitle,
         body: t.notifyBody,
@@ -267,9 +281,45 @@ export default function Timer({
       plannedMin: session.planned_min,
       tagKey: tag?.key ?? "",
       tagLabel: tag?.label ?? "—",
+      tagLabelEn: tag?.label_en ?? null,
     });
     setNow(Date.now());
     notifiedRef.current = false;
+  }
+
+  /** 태그 목록 재조회. preferId가 살아 있으면 그걸, 아니면 첫 태그를 선택한다. */
+  async function reloadTags(forModeId: number, preferId?: number) {
+    const ts = await listTags(forModeId);
+    setTags(ts);
+    setTagId((cur) => {
+      const wanted = preferId ?? cur;
+      if (wanted != null && ts.some((tg) => tg.id === wanted)) return wanted;
+      return ts[0]?.id ?? null;
+    });
+  }
+
+  async function handleAddTag(input: AddTagInput) {
+    if (modeId == null) return;
+    const created = await createTag({
+      modeId,
+      label: input.label,
+      labelEn: input.labelEn,
+      color: input.color,
+    });
+    // 추가하자마자 바로 쓸 수 있게 새 태그를 선택 상태로
+    await reloadTags(modeId, created.id);
+  }
+
+  async function handleDeleteTag(id: number) {
+    if (modeId == null) return;
+    await archiveTag(id);
+    // 지운 게 선택 중이던 태그면 reloadTags가 첫 태그로 되돌려 놓는다
+    await reloadTags(modeId);
+  }
+
+  function formatTagError(e: unknown): string {
+    if (e instanceof TagError) return t.tagError(e.code);
+    return e instanceof Error ? e.message : String(e);
   }
 
   async function handleStart() {
@@ -283,6 +333,7 @@ export default function Timer({
         plannedMin,
         tagKey: tag?.key ?? "",
         tagLabel: tag?.label ?? "—",
+        tagLabelEn: tag?.label_en ?? null,
       });
       setNow(Date.now());
       notifiedRef.current = false;
@@ -346,14 +397,20 @@ export default function Timer({
 
   const displayTagLabel = useMemo(() => {
     if (running) {
-      return lang === "en"
-        ? t.tag[running.tagKey] ?? running.tagLabel
-        : running.tagLabel;
+      return resolveTagLabel(
+        {
+          key: running.tagKey,
+          label: running.tagLabel,
+          label_en: running.tagLabelEn,
+        },
+        lang,
+        t.tag,
+      );
     }
     if (tagId == null) return "";
     const tag = tags.find((tg) => tg.id === tagId);
     if (!tag) return "";
-    return lang === "en" ? t.tag[tag.key] ?? tag.label : tag.label;
+    return resolveTagLabel(tag, lang, t.tag);
   }, [running, lang, t, tagId, tags]);
 
   const canStart = modeId != null && tagId != null && !running;
@@ -498,8 +555,7 @@ export default function Timer({
               {tags.map((tag) => {
                 const active = tag.id === tagId;
                 const color = tag.color ?? "#71717a";
-                const label =
-                  lang === "en" ? t.tag[tag.key] ?? tag.label : tag.label;
+                const label = resolveTagLabel(tag, lang, t.tag);
                 return (
                   <button
                     key={tag.id}
@@ -553,6 +609,9 @@ export default function Timer({
             activeId={tagId}
             onChange={setTagId}
             disabled={!!running}
+            onAdd={handleAddTag}
+            onDelete={handleDeleteTag}
+            formatError={formatTagError}
           />
         </section>
       )}

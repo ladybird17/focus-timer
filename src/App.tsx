@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import Timer from "./pages/Timer";
 import Today from "./pages/Today";
+import Patterns from "./pages/Patterns";
 
-export type View = "timer" | "today";
+export type View = "timer" | "today" | "patterns";
 
 const DAY_START_KEY = "focus-timer.dayStartHour";
 
@@ -30,6 +31,9 @@ export default function App() {
         dayStartHour={dayStartHour}
       />
     );
+  }
+  if (view === "patterns") {
+    return <Patterns view={view} onChangeView={setView} />;
   }
   return (
     <Timer
