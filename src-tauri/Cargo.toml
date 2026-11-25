@@ -1,6 +1,6 @@
 [package]
 name = "focus-timer"
-version = "0.1.0"
+version = "1.0.0"
 description = "Focus timer for developers"
 authors = ["focus-timer"]
 edition = "2021"

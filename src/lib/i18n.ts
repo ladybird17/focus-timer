@@ -1,5 +1,6 @@
 import type { InterruptReason, ModeKey } from "../types";
 import { MAX_TAGS_PER_MODE } from "../types";
+import { STICKER, type BuiltinStickerKey } from "./stickers";
 
 export type Lang = "ko" | "en";
 
@@ -79,6 +80,10 @@ export interface Messages {
   tagNamePlaceholder: string;
   tagNameEnPlaceholder: string;
   tagAddSubmit: string;
+  tagHexAria: string;
+  tagHexInvalid: string;
+  tagColorPickerAria: string;
+  tagPreviewLabel: string;
   tagCount: (n: number, max: number) => string;
   tagDeleteConfirm: (label: string) => string;
   tagDeleteKeepsData: string;
@@ -87,6 +92,22 @@ export interface Messages {
 
   // 테마 선택
   themeLabel: string;
+  /** 꾸미기 서랍 (테마 + 스티커) */
+  decorLabel: string;
+
+  // 스티커 꾸미기
+  stickerLabel: string;
+  stickerPickHint: string;
+  stickerAdd: string;
+  stickerFormatHint: string;
+  stickerCount: (n: number, max: number) => string;
+  stickerSize: string;
+  stickerRotate: string;
+  stickerRemove: string;
+  stickerRemoveAll: string;
+  stickerDelete: string;
+  stickerName: Record<BuiltinStickerKey, string>;
+  stickerError: (code: string) => string;
 
   // Settings 모달
   settingsTitle: string;
@@ -204,6 +225,10 @@ const ko: Messages = {
   tagNamePlaceholder: "태그 이름",
   tagNameEnPlaceholder: "English (선택)",
   tagAddSubmit: "추가",
+  tagHexAria: "색 코드 (HEX)",
+  tagHexInvalid: "#rgb 또는 #rrggbb",
+  tagColorPickerAria: "색 선택기 열기",
+  tagPreviewLabel: "미리보기",
   tagCount: (n, max) => `${n} / ${max}`,
   tagDeleteConfirm: (label) => `「${label}」 태그를 삭제할까요?`,
   tagDeleteKeepsData: "이 태그로 쌓인 지난 기록과 통계는 그대로 유지됩니다.",
@@ -228,6 +253,33 @@ const ko: Messages = {
   },
 
   themeLabel: "테마",
+  decorLabel: "꾸미기",
+
+  stickerLabel: "스티커",
+  stickerPickHint: "눌러서 붙이고, 시계 위에서 끌어 옮겨요.",
+  stickerAdd: "+ 내 스티커 등록",
+  stickerFormatHint: `PNG·WebP·SVG·GIF, ${STICKER.maxBytes / 1024}KB 이하`,
+  stickerCount: (n, max) => `${n} / ${max}개 붙임`,
+  stickerSize: "크기",
+  stickerRotate: "회전",
+  stickerRemove: "떼기",
+  stickerRemoveAll: "모두 떼기",
+  stickerDelete: "서랍에서 삭제",
+  stickerName: { clover: "네잎클로버", star: "별", coffee: "커피" },
+  stickerError: (code) => {
+    switch (code) {
+      case "BAD_FORMAT":
+        return "PNG·WebP·SVG·GIF 파일만 등록할 수 있어요.";
+      case "TOO_LARGE":
+        return `파일이 너무 커요. ${STICKER.maxBytes / 1024}KB 이하만 등록할 수 있어요.`;
+      case "DECODE_FAILED":
+        return "이미지를 읽지 못했어요.";
+      case "LIMIT":
+        return `스티커는 ${STICKER.maxCount}개까지 붙일 수 있어요.`;
+      default:
+        return code;
+    }
+  },
 
   settingsTitle: "설정",
   soundLabel: "알림음",
@@ -287,7 +339,9 @@ const ko: Messages = {
     meeting: "회의",
     deploy: "배포",
     document: "문서",
-    coding: "코딩 공부",
+    dev: "개발",
+    language: "어학",
+    coding: "코딩",
     reading: "독서/논문",
     tutorial: "튜토리얼",
     "side-project": "개인 프로젝트",
@@ -364,6 +418,10 @@ const en: Messages = {
   tagNamePlaceholder: "Tag name",
   tagNameEnPlaceholder: "English (optional)",
   tagAddSubmit: "Add",
+  tagHexAria: "Color code (HEX)",
+  tagHexInvalid: "#rgb or #rrggbb",
+  tagColorPickerAria: "Open color picker",
+  tagPreviewLabel: "Preview",
   tagCount: (n, max) => `${n} / ${max}`,
   tagDeleteConfirm: (label) => `Delete the "${label}" tag?`,
   tagDeleteKeepsData: "Past sessions and stats for this tag stay intact.",
@@ -388,6 +446,33 @@ const en: Messages = {
   },
 
   themeLabel: "Theme",
+  decorLabel: "Decorate",
+
+  stickerLabel: "Stickers",
+  stickerPickHint: "Click to stick, then drag it on the timer.",
+  stickerAdd: "+ Add my sticker",
+  stickerFormatHint: `PNG, WebP, SVG, GIF up to ${STICKER.maxBytes / 1024}KB`,
+  stickerCount: (n, max) => `${n} / ${max} placed`,
+  stickerSize: "Size",
+  stickerRotate: "Rotate",
+  stickerRemove: "Remove",
+  stickerRemoveAll: "Remove all",
+  stickerDelete: "Delete from drawer",
+  stickerName: { clover: "Clover", star: "Star", coffee: "Coffee" },
+  stickerError: (code) => {
+    switch (code) {
+      case "BAD_FORMAT":
+        return "Only PNG, WebP, SVG, or GIF files can be added.";
+      case "TOO_LARGE":
+        return `The file is too large. The limit is ${STICKER.maxBytes / 1024}KB.`;
+      case "DECODE_FAILED":
+        return "Could not read the image.";
+      case "LIMIT":
+        return `You can place up to ${STICKER.maxCount} stickers.`;
+      default:
+        return code;
+    }
+  },
 
   settingsTitle: "Settings",
   soundLabel: "Notification Sound",
@@ -449,7 +534,9 @@ const en: Messages = {
     meeting: "Meeting",
     deploy: "Deploy",
     document: "Documentation",
-    coding: "Coding Practice",
+    dev: "Development",
+    language: "Language",
+    coding: "Coding",
     reading: "Reading / Papers",
     tutorial: "Tutorial",
     "side-project": "Side Project",

@@ -12,10 +12,17 @@
 - 업무 모드 / 공부 모드 분리 — 모드마다 다른 태그셋
 - 태그 기반 세션 (현재 모드 13개 태그 시드)
 - 5/10/20/30/40/50/60분 프리셋
-- 60분 비주얼 다이얼 — 6가지 컬러 테마 (`moran`, `sunfish`, `pepe`, `rocky`, `pointNemo`, `burjKhalifa`)
+- 60분 비주얼 다이얼 — 6가지 컬러 테마 (`moran`, `sunfish`, `pepe`(화면 이름: 말차라떼 / Matcha Latte), `rocky`, `pointNemo`, `burjKhalifa`)
 - 세션 완료 시 자기평가 (집중 잘됨 / 흐트러짐)
 - 세션 중단 시 사유 선택 — 모드별 사유셋
 - OS 네이티브 알림 + 비프음(1회/3회 선택) + 다이얼 깜빡임 옵션
+
+### 스티커 꾸미기
+- 헤더의 **꾸미기 버튼**(팔레트 아이콘)으로 서랍을 열면 위쪽에서 테마 색을 고르고, 아래쪽에서 스티커를 눌러 시계 본체에 붙임 (서랍이 열려 있는 동안만 끌어서 옮길 수 있음)
+- 기본 스티커 3종(네잎클로버 · 별 · 커피) + **내 이미지 등록** — PNG · WebP · SVG · GIF, 한 장에 512KB 이하
+- 등록할 때 긴 변 256px로 줄여서 보관 (SVG · GIF는 그대로), 원본 비율 유지
+- 크기 32–96px(기본 56px), 회전 ±45°, 최대 12개. 다이얼 위를 포함해 어디든, 본체 밖으로는 스티커의 절반까지
+- 크기·좌표는 320px 본체 기준으로 저장 → 미니 모드에서도 같은 비율로 줄어서 표시
 
 ### 오늘 대시보드
 - 총 집중시간 / 완료 세션 수 / 베스트 스트릭 KPI
@@ -156,6 +163,16 @@ CREATE TABLE sessions (
   self_review      TEXT,                           -- focused | distracted
   note             TEXT
 );
+
+-- 사용자가 등록한 스티커 이미지. 본체에 붙인 위치는 화면 설정이라 localStorage 에 둔다
+CREATE TABLE stickers (
+  id         INTEGER PRIMARY KEY,
+  name       TEXT NOT NULL,                 -- 원본 파일 이름
+  mime       TEXT NOT NULL,                 -- image/png | image/webp | image/svg+xml | image/gif
+  data       TEXT NOT NULL,                 -- 보관용으로 줄인 이미지의 data URL
+  created_at TEXT NOT NULL                  -- ISO8601
+);
+
 ```
 
 ### 모드별 시드 태그
@@ -196,6 +213,8 @@ focus-timer/
 │   │   ├── ModeToggle.tsx
 │   │   ├── TagPicker.tsx
 │   │   ├── TimerDisplay.tsx        # 60분 비주얼 다이얼 SVG
+│   │   ├── StickerLayer.tsx        # 본체 위에 붙인 스티커 (끌어서 옮기기)
+│   │   ├── DecorPanel.tsx          # 꾸미기 서랍 (테마 색 + 스티커 붙이기 · 등록 · 크기/회전)
 │   │   ├── InterruptModal.tsx
 │   │   ├── ReviewModal.tsx
 │   │   ├── SettingsModal.tsx
@@ -213,6 +232,8 @@ focus-timer/
 │       ├── sound.ts                # 비프음
 │       ├── tray.ts                 # 시스템 트레이 IPC 헬퍼
 │       ├── window.ts               # 미니 모드 / 창 크기·위치·always-on-top
+│       ├── stickers.ts             # 스티커 규칙 · 기본 3종 · 파일 검사/축소
+│       ├── useStickers.ts          # 서랍 + 붙인 스티커 상태 hook
 │       ├── i18n.ts                 # 메시지 사전 (ko/en) + 라벨 매핑
 │       ├── lang.tsx                # LangProvider + useLang hook
 │       └── time.ts                 # 시간 포맷 헬퍼

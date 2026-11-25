@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Tag } from "../types";
-import { MAX_TAGS_PER_MODE, TAG_PALETTE, pickTagColor } from "../types";
+import {
+  MAX_TAGS_PER_MODE,
+  TAG_PALETTE,
+  TAG_PALETTE_COLUMNS,
+  pickTagColor,
+} from "../types";
+import { normalizeHex, textOnColor } from "../lib/color";
 import { useLang } from "../lib/lang";
 import { resolveTagLabel } from "../lib/i18n";
 
@@ -35,7 +41,11 @@ export function TagPicker({
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
   const [labelEn, setLabelEn] = useState("");
+  /** 마지막으로 유효했던 색 (소문자 #rrggbb) — 스와치·미리보기·저장에 쓰인다 */
   const [color, setColor] = useState<string>(TAG_PALETTE[0]);
+  /** HEX 입력칸에 적힌 그대로의 글자. 입력 도중에는 잠깐 유효하지 않을 수 있다 */
+  const [hexText, setHexText] = useState<string>(TAG_PALETTE[0]);
+  const hexValid = normalizeHex(hexText) !== null;
   const [pendingDelete, setPendingDelete] = useState<Tag | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,8 +73,22 @@ export function TagPicker({
     setError(null);
     setLabel("");
     setLabelEn("");
-    setColor(pickTagColor(tags.map((tg) => tg.color)));
+    pickColor(pickTagColor(tags.map((tg) => tg.color)));
     setAdding(true);
+  }
+
+  /** 스와치·색 선택기에서 고른 색 — 입력칸 글자도 같이 맞춘다 */
+  function pickColor(c: string) {
+    const n = normalizeHex(c) ?? TAG_PALETTE[0];
+    setColor(n);
+    setHexText(n);
+  }
+
+  /** 입력칸에 직접 친 코드 — 유효해지는 순간 색(과 스와치 선택 표시)에 반영한다 */
+  function typeHex(v: string) {
+    setHexText(v);
+    const n = normalizeHex(v);
+    if (n) setColor(n);
   }
 
   function closeAdd() {
@@ -73,7 +97,7 @@ export function TagPicker({
   }
 
   async function submitAdd() {
-    if (!onAdd || busy) return;
+    if (!onAdd || busy || !hexValid || !label.trim()) return;
     setBusy(true);
     setError(null);
     try {
@@ -118,13 +142,17 @@ export function TagPicker({
                 onClick={() => onChange(tag.id)}
                 style={
                   active
-                    ? { backgroundColor: tagColor, borderColor: tagColor }
+                    ? {
+                        backgroundColor: tagColor,
+                        borderColor: tagColor,
+                        color: textOnColor(tagColor),
+                      }
                     : { borderColor: tagColor + "55", color: tagColor }
                 }
                 className={
                   "px-3 py-1.5 text-sm rounded-full border transition-colors " +
                   (active
-                    ? "text-white"
+                    ? ""
                     : "bg-white hover:bg-zinc-50 disabled:opacity-50") +
                   (marked ? " ring-2 ring-red-400 ring-offset-1" : "")
                 }
@@ -198,13 +226,20 @@ export function TagPicker({
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          {/* 12열 격자 — 한 줄이 한 톤(연함 / 기본 / 진함) */}
+          <div
+            className="grid gap-1.5 w-fit"
+            style={{
+              gridTemplateColumns: `repeat(${TAG_PALETTE_COLUMNS}, 1.25rem)`,
+            }}
+          >
             {TAG_PALETTE.map((c) => (
               <button
                 key={c}
                 type="button"
-                onClick={() => setColor(c)}
+                onClick={() => pickColor(c)}
                 aria-label={c}
+                title={c}
                 style={{ backgroundColor: c }}
                 className={
                   "w-5 h-5 rounded-full transition-transform " +
@@ -214,6 +249,78 @@ export function TagPicker({
                 }
               />
             ))}
+          </div>
+
+          {/* 코드로 직접 지정: 현재 색 + HEX 입력 + OS 색 선택기 */}
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="w-6 h-6 shrink-0 rounded-full border border-black/10"
+              style={{ backgroundColor: color }}
+            />
+            <input
+              value={hexText}
+              maxLength={7}
+              spellCheck={false}
+              onChange={(e) => typeHex(e.target.value)}
+              onBlur={() => {
+                // 유효한 값이면 "#rrggbb" 꼴로 다듬어 보여준다 (예: "f80" → "#ff8800")
+                if (hexValid) setHexText(color);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void submitAdd();
+                if (e.key === "Escape") closeAdd();
+              }}
+              placeholder="#rrggbb"
+              aria-label={t.tagHexAria}
+              aria-invalid={!hexValid}
+              className={
+                "w-24 px-2.5 py-1 text-sm font-mono rounded-md border text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 " +
+                (hexValid
+                  ? "border-zinc-300 focus:ring-zinc-300"
+                  : "border-red-500 focus:ring-red-200")
+              }
+            />
+            <label
+              title={t.tagColorPickerAria}
+              className="relative w-6 h-6 shrink-0 rounded-full overflow-hidden cursor-pointer"
+              style={{
+                background:
+                  "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
+              }}
+            >
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => pickColor(e.target.value)}
+                aria-label={t.tagColorPickerAria}
+                className="absolute -inset-2 w-10 h-10 opacity-0 cursor-pointer"
+              />
+            </label>
+            {!hexValid && (
+              <span className="text-xs text-red-600">{t.tagHexInvalid}</span>
+            )}
+          </div>
+
+          {/* 새 태그가 비활성 / 활성일 때 어떻게 보일지 */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-400">{t.tagPreviewLabel}</span>
+            <span
+              className="px-3 py-1.5 text-sm rounded-full border bg-white"
+              style={{ borderColor: color + "55", color }}
+            >
+              {label.trim() || t.tagNamePlaceholder}
+            </span>
+            <span
+              className="px-3 py-1.5 text-sm rounded-full border"
+              style={{
+                backgroundColor: color,
+                borderColor: color,
+                color: textOnColor(color),
+              }}
+            >
+              {label.trim() || t.tagNamePlaceholder}
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -232,7 +339,7 @@ export function TagPicker({
               <button
                 type="button"
                 onClick={submitAdd}
-                disabled={busy || !label.trim()}
+                disabled={busy || !label.trim() || !hexValid}
                 className="px-3 py-1 text-sm font-medium rounded-md bg-zinc-800 text-white hover:bg-zinc-700 disabled:opacity-50"
               >
                 {t.tagAddSubmit}

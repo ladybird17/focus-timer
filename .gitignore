@@ -29,3 +29,9 @@ DESIGN.md
 # Claude Code
 .claude/
 CLAUDE.md
+
+# 로컬 전용 — 스토어 배포 준비, 시안, 작업 기록
+msix/
+scripts/
+playground/
+변경사항/

@@ -9,11 +9,26 @@ export type Theme =
 export const THEME_LABELS: Record<Theme, string> = {
   moran: "Moran",
   sunfish: "Sunfish",
-  pepe: "Pepe",
+  // 내부 키는 저장된 설정과 맞추려고 "pepe" 를 그대로 둔다
+  pepe: "Matcha Latte",
   rocky: "Rocky",
   pointNemo: "Point Nemo",
   burjKhalifa: "Burj Khalifa",
 };
+
+/** 한국어 화면에서 쓰는 테마 이름 */
+const THEME_LABELS_KO: Record<Theme, string> = {
+  moran: "모란",
+  sunfish: "개복치",
+  pepe: "말차라떼",
+  rocky: "록키",
+  pointNemo: "포인트니모",
+  burjKhalifa: "부르즈 할리파",
+};
+
+export function themeLabel(theme: Theme, lang: string): string {
+  return lang === "ko" ? THEME_LABELS_KO[theme] : THEME_LABELS[theme];
+}
 
 interface ThemeColors {
   frame: string;
@@ -21,10 +36,8 @@ interface ThemeColors {
   sector: string;
   knob: string;
   knobCenter: string;
-  /** 시작 버튼 배경 + 일반 액센트 (위에 흰 글자가 올라감) */
+  /** 시작 버튼 배경 + 일반 액센트 (위에 흰 글자가 올라감). 카드 위 "focus." 라벨 색이기도 하다 */
   text: string;
-  /** 다이얼 좌상단 "focus." 라벨 색 — 다크 frame일 때만 text와 분리됨 */
-  frameLabel: string;
   tickMajor: string;
   tickMinor: string;
   numberLabel: string;
@@ -38,7 +51,6 @@ export const THEMES: Record<Theme, ThemeColors> = {
     knob: "#f3b62b",
     knobCenter: "#ad7415",
     text: "#b8252a",
-    frameLabel: "#b8252a",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
@@ -50,19 +62,17 @@ export const THEMES: Record<Theme, ThemeColors> = {
     knob: "#d6d6da",
     knobCenter: "#74747c",
     text: "#d94a82",
-    frameLabel: "#d94a82",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
   },
   pepe: {
-    frame: "#f0e8d2",
-    dialBg: "#fdfaf2",
-    sector: "#7fbf7e",
+    frame: "#cfe6c6",
+    dialBg: "#f1e7cf",
+    sector: "#6fb56e",
     knob: "#f5b577",
     knobCenter: "#c98452",
     text: "#4a8a4a",
-    frameLabel: "#4a8a4a",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
@@ -74,7 +84,6 @@ export const THEMES: Record<Theme, ThemeColors> = {
     knob: "#71717a",
     knobCenter: "#27272a",
     text: "#4d7c0f",
-    frameLabel: "#4d7c0f",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
@@ -86,7 +95,6 @@ export const THEMES: Record<Theme, ThemeColors> = {
     knob: "#475569",
     knobCenter: "#1e293b",
     text: "#0e7490",
-    frameLabel: "#0e7490",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
@@ -98,7 +106,6 @@ export const THEMES: Record<Theme, ThemeColors> = {
     knob: "#f1fa8c",
     knobCenter: "#a8a035",
     text: "#bd93f9",
-    frameLabel: "#f8f8f2",
     tickMajor: "#3f3f46",
     tickMinor: "#a1a1aa",
     numberLabel: "#52525b",
@@ -113,9 +120,17 @@ interface Props {
   flash?: boolean;
   /** 표시 크기(픽셀). 기본 320. 다른 값을 주면 CSS transform 으로 스케일. */
   size?: number;
+  /** 카드 위에 겹쳐 그릴 것 (스티커). 카드 안에 들어가므로 카드와 함께 줄어든다. */
+  overlay?: React.ReactNode;
 }
 
-export function TimerDisplay({ dialFraction, theme, flash, size }: Props) {
+export function TimerDisplay({
+  dialFraction,
+  theme,
+  flash,
+  size,
+  overlay,
+}: Props) {
   const colors = THEMES[theme];
 
   const cardSize = 320;
@@ -204,12 +219,6 @@ export function TimerDisplay({ dialFraction, theme, flash, size }: Props) {
       }}
     >
         <div
-          className="absolute top-3 left-4 text-[11px] font-semibold tracking-[0.18em] lowercase"
-          style={{ color: colors.frameLabel }}
-        >
-          focus.
-        </div>
-        <div
           className="absolute rounded-full"
           style={{
             width: dialSize,
@@ -241,6 +250,7 @@ export function TimerDisplay({ dialFraction, theme, flash, size }: Props) {
             }}
           />
         </div>
+        {overlay}
     </div>
   );
 
@@ -260,5 +270,17 @@ export function TimerDisplay({ dialFraction, theme, flash, size }: Props) {
     );
   }
 
-  return <div className="flex flex-col items-center">{card}</div>;
+  // "focus." 라벨은 카드 바깥 위쪽에 둔다. absolute 로 띄워서 카드의 세로 가운데 정렬은 그대로 유지.
+  // 미니 모드(위의 size 분기)는 창이 좁아서 라벨을 그리지 않는다.
+  return (
+    <div className="relative flex flex-col items-center">
+      <div
+        className="absolute bottom-full left-0 right-0 mb-[10px] text-center text-[13px] leading-none font-semibold tracking-[0.18em] lowercase"
+        style={{ color: colors.text }}
+      >
+        focus.
+      </div>
+      {card}
+    </div>
+  );
 }

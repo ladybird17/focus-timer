@@ -7,6 +7,7 @@ import type {
   Tag,
 } from "../types";
 import { MAX_TAGS_PER_MODE, pickTagColor } from "../types";
+import type { UserSticker } from "./stickers";
 
 let dbPromise: Promise<Database> | null = null;
 
@@ -28,7 +29,8 @@ const TAG_COLUMNS =
 export async function listTags(modeId: number): Promise<Tag[]> {
   const db = await getDb();
   return db.select<Tag[]>(
-    `${TAG_COLUMNS} WHERE mode_id = $1 AND archived = 0 ORDER BY id`,
+    // 기본 태그는 sort_order 순, 나머지(직접 만든 태그 등)는 그 뒤에 만든 순
+    `${TAG_COLUMNS} WHERE mode_id = $1 AND archived = 0 ORDER BY sort_order IS NULL, sort_order, id`,
     [modeId],
   );
 }
@@ -175,7 +177,7 @@ export async function completeSession(
   const db = await getDb();
   const endedAt = new Date().toISOString();
   await db.execute(
-    "UPDATE sessions SET ended_at = $1, status = 'completed', self_review = $2 WHERE id = $3",
+    "UPDATE sessions SET ended_at = $1, status = 'completed', self_review = $2 WHERE id = $3 AND status = 'running'",
     [endedAt, selfReview, id],
   );
 }
@@ -187,7 +189,7 @@ export async function interruptSession(
   const db = await getDb();
   const endedAt = new Date().toISOString();
   await db.execute(
-    "UPDATE sessions SET ended_at = $1, status = 'interrupted', interrupt_reason = $2 WHERE id = $3",
+    "UPDATE sessions SET ended_at = $1, status = 'interrupted', interrupt_reason = $2 WHERE id = $3 AND status = 'running'",
     [endedAt, reason, id],
   );
 }
@@ -206,4 +208,29 @@ export async function deleteTodaySessions(): Promise<number> {
     "DELETE FROM sessions WHERE date(started_at, 'localtime') = date('now', 'localtime')",
   );
   return result.rowsAffected;
+}
+
+// ── 스티커 (사용자가 등록한 이미지) ──
+
+export async function listStickers(): Promise<UserSticker[]> {
+  const db = await getDb();
+  return db.select<UserSticker[]>(
+    "SELECT id, name, mime, data FROM stickers ORDER BY id",
+  );
+}
+
+export async function addSticker(
+  input: Omit<UserSticker, "id">,
+): Promise<UserSticker> {
+  const db = await getDb();
+  const result = await db.execute(
+    "INSERT INTO stickers (name, mime, data, created_at) VALUES ($1, $2, $3, $4)",
+    [input.name, input.mime, input.data, new Date().toISOString()],
+  );
+  return { id: result.lastInsertId as number, ...input };
+}
+
+export async function deleteSticker(id: number): Promise<void> {
+  const db = await getDb();
+  await db.execute("DELETE FROM stickers WHERE id = $1", [id]);
 }

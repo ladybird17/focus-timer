@@ -6,7 +6,9 @@ import {
   THEMES,
   type Theme,
 } from "../components/TimerDisplay";
-import { ThemePicker } from "../components/ThemePicker";
+import { StickerLayer } from "../components/StickerLayer";
+import { DecorPanel } from "../components/DecorPanel";
+import { useStickers } from "../lib/useStickers";
 import { InterruptModal } from "../components/InterruptModal";
 import { ReviewModal } from "../components/ReviewModal";
 import { SettingsModal } from "../components/SettingsModal";
@@ -25,6 +27,7 @@ import {
   TagError,
 } from "../lib/db";
 import { remainingMs } from "../lib/time";
+import { textOnColor } from "../lib/color";
 import { ensureNotificationPermission, notifySessionDone } from "../lib/notify";
 import { playBeepSequence } from "../lib/sound";
 import { useLang } from "../lib/lang";
@@ -118,6 +121,17 @@ export default function Timer({
   });
 
   const [showSettings, setShowSettings] = useState(false);
+
+  const stickers = useStickers(t.stickerName);
+  /** 꾸미기 서랍(테마 + 스티커). 열려 있는 동안만 본체의 스티커를 끌어 옮길 수 있다 */
+  const [decorPanelOpen, setDecorPanelOpen] = useState(false);
+  const [selectedStickerId, setSelectedStickerId] = useState<number | null>(
+    null,
+  );
+  const stickerEditing = decorPanelOpen && !miniMode;
+  const selectedSticker = stickerEditing
+    ? (stickers.placements.find((p) => p.id === selectedStickerId) ?? null)
+    : null;
 
   const [running, setRunning] = useState<Running | null>(null);
   const [now, setNow] = useState<number>(Date.now());
@@ -468,17 +482,38 @@ export default function Timer({
         </header>
       ) : (
         <header className="px-6 pt-5 pb-2 flex items-center justify-between">
+          <h1 className="text-sm font-semibold text-zinc-700">{todayLabel}</h1>
           <div className="flex items-center gap-3">
-            <h1 className="text-sm font-semibold text-zinc-700">{todayLabel}</h1>
-            <ModeToggle
-              modes={modes}
-              activeId={modeId}
-              onChange={setModeId}
-              disabled={!!running}
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemePicker theme={theme} onChange={setTheme} />
+            <button
+              type="button"
+              onClick={() => setDecorPanelOpen((v) => !v)}
+              aria-label={t.decorLabel}
+              aria-pressed={decorPanelOpen}
+              title={t.decorLabel}
+              className={
+                "p-1.5 rounded-md transition-colors " +
+                (decorPanelOpen
+                  ? "bg-zinc-200 text-zinc-900"
+                  : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100")
+              }
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+                <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+                <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+                <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+              </svg>
+            </button>
             <ViewTabs view={view} onChangeView={onChangeView} />
             <button
               type="button"
@@ -563,12 +598,16 @@ export default function Timer({
                     onClick={() => setTagId(tag.id)}
                     style={
                       active
-                        ? { backgroundColor: color, borderColor: color }
+                        ? {
+                            backgroundColor: color,
+                            borderColor: color,
+                            color: textOnColor(color),
+                          }
                         : { borderColor: color + "55", color: color }
                     }
                     className={
                       "px-2 py-0.5 text-xs rounded-full border transition-colors " +
-                      (active ? "text-white" : "bg-white hover:bg-zinc-50")
+                      (active ? "" : "bg-white hover:bg-zinc-50")
                     }
                   >
                     {label}
@@ -604,6 +643,15 @@ export default function Timer({
 
       {!miniMode && (
         <section className="px-6 pt-2">
+          {/* 모드는 태그 목록을 바꾸는 스위치라 태그 바로 위에 둔다 */}
+          <div className="mb-2.5">
+            <ModeToggle
+              modes={modes}
+              activeId={modeId}
+              onChange={setModeId}
+              disabled={!!running}
+            />
+          </div>
           <TagPicker
             tags={tags}
             activeId={tagId}
@@ -644,15 +692,55 @@ export default function Timer({
 
       <section
         className={
-          "flex-1 flex items-center justify-center " +
+          "relative flex-1 flex items-center justify-center " +
           (miniMode ? "px-2" : "px-6")
         }
       >
+        {stickerEditing && (
+          <DecorPanel
+            theme={theme}
+            onChangeTheme={setTheme}
+            items={stickers.items}
+            placedCount={stickers.placements.length}
+            selected={selectedSticker}
+            onPlace={(ref) => setSelectedStickerId(stickers.place(ref))}
+            onRegister={async (file) => {
+              const item = await stickers.register(file);
+              setSelectedStickerId(stickers.place(item.ref));
+            }}
+            onUnregister={stickers.unregister}
+            onResize={(size) =>
+              selectedSticker && stickers.update(selectedSticker.id, { size })
+            }
+            onRotate={(rot) =>
+              selectedSticker && stickers.update(selectedSticker.id, { rot })
+            }
+            onRemove={() =>
+              selectedSticker && stickers.remove(selectedSticker.id)
+            }
+            onRemoveAll={stickers.clear}
+            onClose={() => setDecorPanelOpen(false)}
+          />
+        )}
         <TimerDisplay
           dialFraction={dialFraction}
           theme={theme}
           flash={flashOn}
           size={miniMode && !running ? 200 : undefined}
+          overlay={
+            <StickerLayer
+              placements={stickers.placements}
+              srcByRef={stickers.srcByRef}
+              editing={stickerEditing}
+              selectedId={selectedStickerId}
+              onGrab={(id) => {
+                setSelectedStickerId(id);
+                stickers.bringToFront(id);
+              }}
+              onMove={(id, x, y) => stickers.update(id, { x, y })}
+              onDeselect={() => setSelectedStickerId(null)}
+            />
+          }
         />
       </section>
 
